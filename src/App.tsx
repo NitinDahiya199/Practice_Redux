@@ -3,7 +3,26 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from './theme/theme';
 import { Header, HeaderContent, Logo, Nav, NavLink, ProfileIconContainer, ProfileIcon, ProtectedRoute } from './components/common';
-import { Landing, Login, Signup, Profile, Tasks, UserDetails } from './pages';
+import {
+  Landing,
+  Login,
+  Signup,
+  Profile,
+  Tasks,
+  UserDetails,
+  Web3Integration,
+  AIPowered,
+  Collaboration,
+  Analytics,
+  Documentation,
+  APIReference,
+  Support,
+  Blog,
+  PrivacyPolicy,
+  TermsOfService,
+  CookiePolicy,
+  NotFound,
+} from './pages';
 import styled from 'styled-components';
 import { Provider } from 'react-redux';
 import { store } from './store';
@@ -41,7 +60,7 @@ const AppHeader = () => {
   return (
     <Header>
       <HeaderContent>
-        <Logo to="/">TaskManager</Logo>
+        <Logo to="/">Reward Flow</Logo>
         <ProfileIconContainer>
           {isAuthenticated ? (
             <>
@@ -94,6 +113,22 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      {/* Feature Pages */}
+      <Route path="/web3-integration" element={<Web3Integration />} />
+      <Route path="/ai-powered" element={<AIPowered />} />
+      <Route path="/collaboration" element={<Collaboration />} />
+      <Route path="/analytics" element={<Analytics />} />
+      {/* Resource Pages */}
+      <Route path="/documentation" element={<Documentation />} />
+      <Route path="/api-reference" element={<APIReference />} />
+      <Route path="/support" element={<Support />} />
+      <Route path="/blog" element={<Blog />} />
+      {/* Legal Pages */}
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route path="/cookie-policy" element={<CookiePolicy />} />
+      {/* 404 Page - Must be last */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };

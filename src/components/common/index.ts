@@ -7,6 +7,23 @@ export { FormGroup, Label, ErrorMessage } from './FormGroup';
 export { Header, HeaderContent, Logo, Nav, NavLink, ProfileIconContainer } from './Header';
 export { ProfileIcon } from './ProfileIcon';
 export { ProtectedRoute } from './ProtectedRoute';
+export {
+  Footer,
+  FooterContent,
+  FooterGrid,
+  FooterColumn,
+  FooterTitle,
+  FooterLink,
+  FooterText,
+  FooterLogo,
+  SocialLinks,
+  SocialLink,
+  FooterBottom,
+  Copyright,
+  FooterLinks,
+  FooterBottomLink,
+} from './Footer';
+export { AppFooter } from './AppFooter';
 
 
 
