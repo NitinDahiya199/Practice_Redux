@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Button, Input, Card, CardHeader, CardTitle, CardBody, FormGroup, Label, PageContainer } from '../components/common';
+import { useDispatch, useSelector } from 'react-redux';
+import { SignUpUser } from '../store/slices/signUpSlice';
+import { AppDispatch, RootState } from '../store';
 
 const SignupContainer = styled(PageContainer)`
   display: flex;
@@ -38,29 +41,59 @@ const LinkText = styled.p`
 `;
 
 export const Signup = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
+  const { isLoading, error } = useSelector((state: RootState) => state.signUp);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
-  const navigate = useNavigate();
+
+  const [passwordError, setPasswordError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+    // Clear password error when user types
+    if (name === 'password' || name === 'confirmPassword') {
+      setPasswordError('');
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Handle signup with Redux
-    console.log('Signup:', formData);
-    // Navigate to tasks page after signup
-    navigate('/tasks');
-  };
 
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+
+    setPasswordError('');
+
+    const result = await dispatch(SignUpUser({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+    }));
+
+    if (SignUpUser.fulfilled.match(result)) {
+      navigate('/tasks');
+    }
+  };
   return (
     <SignupContainer>
       <SignupCard>
@@ -117,8 +150,15 @@ export const Signup = () => {
                 required
               />
             </FormGroup>
-            <Button type="submit" fullWidth>
-              Sign Up
+            {(passwordError || error) && (
+              <FormGroup>
+                <p style={{ color: 'red', fontSize: '14px', margin: 0 }}>
+                  {passwordError || error}
+                </p>
+              </FormGroup>
+            )}
+            <Button type="submit" fullWidth disabled={isLoading}>
+              {isLoading ? 'Signing Up...' : 'Sign Up'}
             </Button>
             <LinkText>
               Already have an account? <Link to="/login">Login</Link>
