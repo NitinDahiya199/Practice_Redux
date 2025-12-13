@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Button, Input, TextArea, Card, CardHeader, CardTitle, CardBody, FormGroup, Label, PageContainer } from '../components/common';
+import { DatePicker } from '../components/common/DatePicker';
+import { TimePicker } from '../components/common/TimePicker';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchTasks, createTask, updateTask, deleteTask, toggleTaskComplete, Task } from '../store/slices/taskSlice';
 
@@ -245,6 +247,25 @@ const DateTimeInputWrapper = styled.div`
   input {
     padding-right: 40px;
     cursor: pointer;
+    
+    /* Hide default browser calendar/time icons */
+    &[type="date"]::-webkit-calendar-picker-indicator,
+    &[type="time"]::-webkit-calendar-picker-indicator {
+      display: none;
+      -webkit-appearance: none;
+    }
+    
+    &[type="date"]::-webkit-inner-spin-button,
+    &[type="time"]::-webkit-inner-spin-button {
+      display: none;
+      -webkit-appearance: none;
+    }
+    
+    /* Firefox */
+    &[type="date"]::-moz-calendar-picker-indicator,
+    &[type="time"]::-moz-calendar-picker-indicator {
+      display: none;
+    }
   }
 `;
 
@@ -286,6 +307,8 @@ export const Tasks = () => {
     show: false,
     taskId: null,
   });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Fetch tasks when component mounts or user changes
   useEffect(() => {
@@ -315,17 +338,61 @@ export const Tasks = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement | HTMLInputElement | HTMLTextAreaElement>) => {
+    // Handle Ctrl+Enter (Windows/Linux) or Cmd+Enter (Mac)
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      const form = e.currentTarget.closest('form');
+      e.stopPropagation();
+      
+      // Find the form
+      const form = e.currentTarget.closest('form') as HTMLFormElement;
       if (form) {
         const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
         if (submitButton && !submitButton.disabled) {
+          // Close any open pickers first
+          setShowDatePicker(false);
+          setShowTimePicker(false);
+          
+          // Submit the form
           form.requestSubmit();
         }
       }
     }
   };
+
+  // Global keyboard listener for form submission
+  useEffect(() => {
+    if (!showForm) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Handle Ctrl+Enter (Windows/Linux) or Cmd+Enter (Mac)
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        // Check if we're not in a picker or modal
+        const target = e.target as HTMLElement;
+        if (target.closest('[role="dialog"]') || target.closest('.date-picker-dropdown') || target.closest('.time-picker-dropdown')) {
+          return; // Don't submit if inside a picker
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const form = document.querySelector('form') as HTMLFormElement;
+        if (form) {
+          const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+          if (submitButton && !submitButton.disabled) {
+            // Close any open pickers first
+            setShowDatePicker(false);
+            setShowTimePicker(false);
+            
+            // Submit the form
+            form.requestSubmit();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [showForm]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -538,6 +605,7 @@ export const Tasks = () => {
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
+                  onKeyDown={handleKeyDown}
                   placeholder="Enter task title"
                   required
                 />
@@ -549,61 +617,76 @@ export const Tasks = () => {
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
+                  onKeyDown={handleKeyDown}
                   placeholder="Enter task description"
                 />
               </FormGroup>
               <FormGroup>
                 <Label htmlFor="dueDate">Due Date & Time (Optional)</Label>
                 <DateTimeContainer>
-                  <DateTimeInputWrapper onClick={(e) => {
-                    const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
-                    if (input) {
-                      if (input.showPicker) {
-                        input.showPicker();
-                      } else {
-                        input.focus();
-                        input.click();
-                      }
-                    }
-                  }}>
+                  <DateTimeInputWrapper>
                     <Input
-                      type="date"
+                      type="text"
                       id="dueDate"
                       name="dueDate"
-                      value={formData.dueDate}
-                      onChange={handleChange}
-                      min={new Date().toISOString().split('T')[0]}
-                      onClick={(e) => e.stopPropagation()}
+                      value={formData.dueDate ? new Date(formData.dueDate + 'T00:00:00').toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                      }).replace(/\s/g, ' ') : ''}
+                      onChange={() => {}}
+                      onClick={() => setShowDatePicker(!showDatePicker)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Select date"
+                      readOnly
                     />
                     <IconWrapper>
                       <CalendarIcon />
                     </IconWrapper>
+                    <DatePicker
+                      value={formData.dueDate}
+                      onChange={(date) => {
+                        setFormData({ ...formData, dueDate: date });
+                      }}
+                      minDate={new Date().toISOString().split('T')[0]}
+                      isOpen={showDatePicker}
+                      onClose={() => setShowDatePicker(false)}
+                    />
                   </DateTimeInputWrapper>
-                  <DateTimeInputWrapper onClick={(e) => {
-                    if (formData.dueDate) {
-                      const input = e.currentTarget.querySelector('input[type="time"]') as HTMLInputElement;
-                      if (input && !input.disabled) {
-                        if (input.showPicker) {
-                          input.showPicker();
-                        } else {
-                          input.focus();
-                          input.click();
-                        }
-                      }
-                    }
-                  }}>
+                  <DateTimeInputWrapper>
                     <Input
-                      type="time"
+                      type="text"
                       id="dueTime"
                       name="dueTime"
-                      value={formData.dueTime}
-                      onChange={handleChange}
+                      value={formData.dueTime ? (() => {
+                        const [hours, minutes] = formData.dueTime.split(':');
+                        const hour = parseInt(hours || '0');
+                        const minute = parseInt(minutes || '0');
+                        const period = hour >= 12 ? 'PM' : 'AM';
+                        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                        return `${String(displayHour).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
+                      })() : ''}
+                      onChange={() => {}}
+                      onClick={() => formData.dueDate && setShowTimePicker(!showTimePicker)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Select time"
+                      readOnly
                       disabled={!formData.dueDate}
-                      onClick={(e) => e.stopPropagation()}
                     />
                     <IconWrapper>
                       <ClockIcon />
                     </IconWrapper>
+                    {showTimePicker && formData.dueDate && (
+                      <TimePicker
+                        value={formData.dueTime || '12:00'}
+                        onChange={(time) => {
+                          setFormData({ ...formData, dueTime: time });
+                        }}
+                        isOpen={showTimePicker}
+                        onClose={() => setShowTimePicker(false)}
+                        disabled={!formData.dueDate}
+                      />
+                    )}
                   </DateTimeInputWrapper>
                 </DateTimeContainer>
               </FormGroup>
