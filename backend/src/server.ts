@@ -118,6 +118,153 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Task routes
+// GET /api/tasks - Get all tasks for a user
+app.get('/api/tasks', async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const tasks = await prisma.task.findMany({
+      where: { userId: userId as string },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.status(200).json(tasks);
+  } catch (error: any) {
+    console.error('Get tasks error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/tasks - Create a new task
+app.post('/api/tasks', async (req, res) => {
+  try {
+    const { title, description, userId, dueDate } = req.body;
+
+    // Validation
+    if (!title || !userId) {
+      return res.status(400).json({ error: 'Title and user ID are required' });
+    }
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Create task
+    const task = await prisma.task.create({
+      data: {
+        title,
+        description: description || '',
+        userId,
+        completed: false,
+        ...(dueDate && { dueDate: new Date(dueDate) }),
+      },
+    });
+
+    res.status(201).json(task);
+  } catch (error: any) {
+    console.error('Create task error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PUT /api/tasks/:id - Update a task
+app.put('/api/tasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, completed, dueDate } = req.body;
+
+    // Check if task exists
+    const existingTask = await prisma.task.findUnique({
+      where: { id },
+    });
+
+    if (!existingTask) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Update task
+    const task = await prisma.task.update({
+      where: { id },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(completed !== undefined && { completed }),
+        ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+      },
+    });
+
+    res.status(200).json(task);
+  } catch (error: any) {
+    console.error('Update task error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PATCH /api/tasks/:id/toggle - Toggle task completion
+app.patch('/api/tasks/:id/toggle', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if task exists
+    const existingTask = await prisma.task.findUnique({
+      where: { id },
+    });
+
+    if (!existingTask) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Toggle completion
+    const task = await prisma.task.update({
+      where: { id },
+      data: {
+        completed: !existingTask.completed,
+      },
+    });
+
+    res.status(200).json(task);
+  } catch (error: any) {
+    console.error('Toggle task error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// DELETE /api/tasks/:id - Delete a task
+app.delete('/api/tasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if task exists
+    const existingTask = await prisma.task.findUnique({
+      where: { id },
+    });
+
+    if (!existingTask) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Delete task
+    await prisma.task.delete({
+      where: { id },
+    });
+
+    res.status(200).json({ message: 'Task deleted successfully' });
+  } catch (error: any) {
+    console.error('Delete task error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
