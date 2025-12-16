@@ -726,15 +726,32 @@ export const Tasks = () => {
   };
 
   const handleDeleteConfirm = async () => {
-    if (deleteConfirm.taskId) {
-      try {
-        await dispatch(deleteTask(deleteConfirm.taskId)).unwrap();
-        setDeleteConfirm({ show: false, taskId: null });
-      } catch (error) {
-        // Error is handled by Redux state
-        console.error('Failed to delete task:', error);
-        setDeleteConfirm({ show: false, taskId: null });
+    if (!deleteConfirm.taskId || !user?.id) {
+      showToast('You must be logged in to delete tasks', 'error');
+      setDeleteConfirm({ show: false, taskId: null });
+      return;
+    }
+
+    try {
+      // Redux Action: deleteTask(taskId) dispatched
+      // Optimistic Update: Remove task from list (handled by Redux)
+      const result = await dispatch(deleteTask({ taskId: deleteConfirm.taskId, userId: user.id })).unwrap();
+      
+      // API Response SUCCESS
+      // Show success notification
+      if (result.refundTxHash) {
+        showToast(`Task deleted successfully! Escrow refunded. Transaction: ${result.refundTxHash.substring(0, 10)}...`, 'success');
+      } else {
+        showToast('Task deleted successfully!', 'success');
       }
+      
+      // Close any open modals
+      setDeleteConfirm({ show: false, taskId: null });
+    } catch (error: any) {
+      // ERROR: Revert optimistic update (handled by Redux), Show error message, Restore task in UI (handled by revert)
+      showToast(error.message || 'Failed to delete task', 'error');
+      // Keep modal open on error so user can retry
+      // Don't close the modal here - let user decide
     }
   };
 

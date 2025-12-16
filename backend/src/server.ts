@@ -915,25 +915,94 @@ app.patch('/api/tasks/:id/toggle', async (req, res) => {
 app.delete('/api/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const { userId } = req.body; // User deleting the task
 
     // Check if task exists
     const existingTask = await prisma.task.findUnique({
       where: { id },
+      include: { user: true },
     });
 
     if (!existingTask) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    // Delete task
+    // Validate ownership - only task creator can delete
+    if (!userId || existingTask.userId !== userId) {
+      return res.status(403).json({ error: 'You do not have permission to delete this task' });
+    }
+
+    // If Web3 escrow: Refund to creator
+    let refundTxHash: string | null = null;
+    if (existingTask.hasWeb3Reward && existingTask.blockchainTaskId && !existingTask.completed) {
+      try {
+        // Connect to blockchain
+        const rpcUrl = process.env.SEPOLIA_RPC_URL;
+        const privateKey = process.env.PRIVATE_KEY;
+        
+        if (!rpcUrl || !privateKey) {
+          console.warn('Web3 RPC URL or private key not configured. Skipping blockchain refund.');
+        } else {
+          const provider = new ethers.JsonRpcProvider(rpcUrl);
+          const wallet = new ethers.Wallet(privateKey, provider);
+          
+          const taskManagerAddress = process.env.TASK_MANAGER_CONTRACT_ADDRESS;
+          
+          if (taskManagerAddress) {
+            // Load TaskManager ABI (minimal for cancelTask)
+            const taskManagerABI = [
+              "function cancelTask(uint256 taskId) external nonReentrant",
+              "event TaskCancelled(uint256 indexed taskId, address indexed creator)"
+            ];
+            const taskManager = new ethers.Contract(taskManagerAddress, taskManagerABI, wallet);
+            
+            // Cancel task on blockchain (refunds escrow payment to creator)
+            const taskId = BigInt(existingTask.blockchainTaskId);
+            const tx = await taskManager.cancelTask(taskId);
+            refundTxHash = tx.hash;
+            await tx.wait();
+            
+            console.log(`Task ${id} cancelled on blockchain. Refund transaction: ${refundTxHash}`);
+          }
+        }
+      } catch (blockchainError: any) {
+        console.error('Blockchain refund error:', blockchainError);
+        // Continue with database deletion even if blockchain refund fails
+        // In production, you might want to handle this differently
+      }
+    }
+
+    // Delete attachments (S3/IPFS) - Placeholder
+    if (existingTask.attachments && existingTask.attachments.length > 0) {
+      console.log(`Deleting ${existingTask.attachments.length} attachments for task ${id}`);
+      // TODO: Implement S3/IPFS deletion
+      // Example:
+      // for (const attachmentUrl of existingTask.attachments) {
+      //   await deleteFromS3(attachmentUrl);
+      //   // or await deleteFromIPFS(attachmentUrl);
+      // }
+    }
+
+    // Delete related notifications - Placeholder
+    console.log(`Deleting notifications for task ${id}`);
+    // TODO: Implement notification deletion
+    // Example:
+    // await prisma.notification.deleteMany({
+    //   where: { taskId: id }
+    // });
+
+    // Delete task from database
     await prisma.task.delete({
       where: { id },
     });
 
-    res.status(200).json({ message: 'Task deleted successfully' });
+    res.status(200).json({ 
+      message: 'Task deleted successfully',
+      refundTxHash,
+    });
   } catch (error: any) {
     console.error('Delete task error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 

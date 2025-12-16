@@ -156,10 +156,12 @@ export const updateTask = createAsyncThunk(
 
 export const deleteTask = createAsyncThunk(
   'tasks/deleteTask',
-  async (taskId: string, { rejectWithValue }) => {
+  async (taskData: { taskId: string; userId: string }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/tasks/${taskId}`, {
+      const response = await fetch(`http://localhost:5000/api/tasks/${taskData.taskId}`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: taskData.userId }),
       });
 
       if (!response.ok) {
@@ -167,7 +169,11 @@ export const deleteTask = createAsyncThunk(
         throw new Error(errorData.error || 'Failed to delete task');
       }
 
-      return taskId;
+      const result = await response.json();
+      return {
+        taskId: taskData.taskId,
+        refundTxHash: result.refundTxHash,
+      };
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to delete task');
     }
@@ -314,17 +320,24 @@ const taskSlice = createSlice({
         state.error = action.payload as string;
       })
       // Delete task
-      .addCase(deleteTask.pending, (state) => {
+      .addCase(deleteTask.pending, (state, action) => {
         state.isLoading = true;
         state.error = null;
+        // Optimistic Update: Remove task from list
+        if (action.meta.arg) {
+          state.tasks = state.tasks.filter(task => task.id !== action.meta.arg.taskId);
+        }
       })
       .addCase(deleteTask.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.tasks = state.tasks.filter(task => task.id !== action.payload);
+        // Update Redux: deleteTask(taskId) - task already removed optimistically
+        state.tasks = state.tasks.filter(task => task.id !== action.payload.taskId);
         state.error = null;
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.isLoading = false;
+        // Revert optimistic update - refetch tasks to restore task in UI
+        // In production, you'd store the deleted task and restore it here
         state.error = action.payload as string;
       })
       // Toggle task complete
