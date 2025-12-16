@@ -1,0 +1,374 @@
+// src/services/contractService.ts
+import { ethers } from "ethers";
+import TaskManagerABI from '../../abis/TaskManager.json';
+import RewardTokenABI from '../../abis/RewardToken.json';
+
+// Contract addresses from environment variables
+const TASK_MANAGER_ADDRESS = import.meta.env.VITE_TASK_MANAGER_CONTRACT_ADDRESS;
+const REWARD_TOKEN_ADDRESS = import.meta.env.VITE_REWARD_TOKEN_CONTRACT_ADDRESS;
+
+export class ContractService {
+  private provider: ethers.BrowserProvider | null = null;
+  private signer: ethers.JsonRpcSigner | null = null;
+  private taskManager: ethers.Contract | null = null;
+  private rewardToken: ethers.Contract | null = null;
+
+  async connect() {
+    if (!window.ethereum) {
+      throw new Error("MetaMask not installed. Please install MetaMask to use Web3 features.");
+    }
+
+    this.provider = new ethers.BrowserProvider(window.ethereum);
+    await this.provider.send("eth_requestAccounts", []);
+    this.signer = await this.provider.getSigner();
+
+    // Only create contract instances if addresses are configured
+    if (TASK_MANAGER_ADDRESS) {
+      this.taskManager = new ethers.Contract(
+        TASK_MANAGER_ADDRESS,
+        TaskManagerABI as any,
+        this.signer
+      );
+    }
+
+    if (REWARD_TOKEN_ADDRESS) {
+      this.rewardToken = new ethers.Contract(
+        REWARD_TOKEN_ADDRESS,
+        RewardTokenABI as any,
+        this.signer
+      );
+    }
+  }
+
+  async isConnected(): Promise<boolean> {
+    return this.taskManager !== null && this.signer !== null;
+  }
+
+  async getCurrentAddress(): Promise<string> {
+    if (!this.signer) {
+      throw new Error("Not connected to wallet");
+    }
+    return await this.signer.getAddress();
+  }
+
+  async createTaskWithETH(
+    title: string,
+    description: string,
+    assignee: string,
+    dueDate: number, // Unix timestamp
+    rewardAmount: string // Amount in ETH (e.g., "0.1")
+  ) {
+    if (!TASK_MANAGER_ADDRESS) {
+      throw new Error("TaskManager contract address not configured. Please set VITE_TASK_MANAGER_CONTRACT_ADDRESS in your .env file.");
+    }
+
+    if (!this.taskManager) {
+      throw new Error("Not connected to wallet. Please connect your wallet first.");
+    }
+
+    // Normalize and validate assignee address
+    let normalizedAssignee: string;
+    try {
+      // ethers.getAddress normalizes to checksum format and validates
+      normalizedAssignee = ethers.getAddress(assignee);
+    } catch (error: any) {
+      throw new Error(`Invalid assignee address format: ${assignee}. Error: ${error.message}`);
+    }
+
+    // Validate assignee is not zero address
+    if (normalizedAssignee === ethers.ZeroAddress) {
+      throw new Error("Assignee cannot be the zero address");
+    }
+    
+    // Use normalized address for contract call
+    assignee = normalizedAssignee;
+
+    // Validate due date is in the future
+    // Use a small buffer (60 seconds) to account for blockchain timestamp differences
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const bufferSeconds = 60; // 1 minute buffer
+    if (dueDate <= currentTimestamp + bufferSeconds) {
+      throw new Error(`Due date must be at least ${bufferSeconds} seconds in the future. Current time: ${currentTimestamp}, Due date: ${dueDate}`);
+    }
+
+    // Check balance before sending
+    const balance = await this.provider!.getBalance(await this.signer!.getAddress());
+    const requiredAmount = ethers.parseEther(rewardAmount);
+    
+    // Validate reward amount is greater than 0 (in wei)
+    if (requiredAmount === 0n) {
+      throw new Error(`Reward amount must be greater than 0. You entered: ${rewardAmount} ETH`);
+    }
+    
+    // Estimate gas cost (rough estimate: 200,000 gas units)
+    // Handle RPC providers that don't support maxPriorityFeePerGas
+    let gasPrice: bigint = 0n;
+    try {
+      const feeData = await this.provider!.getFeeData();
+      // Use gasPrice if available, otherwise use maxFeePerGas, otherwise estimate
+      gasPrice = feeData.gasPrice || feeData.maxFeePerGas || 0n;
+      if (gasPrice === 0n) {
+        // Fallback: get gas price from latest block
+        const block = await this.provider!.getBlock('latest');
+        if (block && block.baseFeePerGas) {
+          gasPrice = block.baseFeePerGas * 2n; // Estimate 2x base fee
+        } else {
+          // Final fallback: use a reasonable estimate for Sepolia (20 gwei)
+          gasPrice = ethers.parseUnits('20', 'gwei');
+        }
+      }
+    } catch (feeError: any) {
+      console.warn('Could not get fee data, using fallback:', feeError.message);
+      // Fallback: use a reasonable estimate for Sepolia (20 gwei)
+      gasPrice = ethers.parseUnits('20', 'gwei');
+    }
+    
+    const estimatedGasCost = gasPrice * 200000n;
+    const totalRequired = requiredAmount + estimatedGasCost;
+    
+    if (balance < totalRequired) {
+      throw new Error(`Insufficient balance. Required: ${ethers.formatEther(requiredAmount)} ETH (reward) + ~${ethers.formatEther(estimatedGasCost)} ETH (gas) = ${ethers.formatEther(totalRequired)} ETH total. Available: ${ethers.formatEther(balance)} ETH`);
+    }
+    
+    if (balance < requiredAmount) {
+      throw new Error(`Insufficient balance. Required: ${ethers.formatEther(requiredAmount)} ETH, Available: ${ethers.formatEther(balance)} ETH`);
+    }
+
+    // Verify contract exists and is callable
+    const code = await this.provider!.getCode(TASK_MANAGER_ADDRESS);
+    if (code === '0x' || code === '0x0') {
+      throw new Error(`No contract found at address ${TASK_MANAGER_ADDRESS}. Please verify the contract address is correct.`);
+    }
+    console.log('Contract code length:', code.length, 'bytes');
+    
+    // Try to verify the contract has the expected function by checking if we can encode the call
+    try {
+      const iface = this.taskManager!.interface;
+      const functionFragment = iface.getFunction("createTaskWithETH");
+      const encodedData = iface.encodeFunctionData(functionFragment, [title, description, assignee, dueDate]);
+      console.log('Function encoded successfully. Data length:', encodedData.length);
+    } catch (encodeError: any) {
+      console.error('Failed to encode function call:', encodeError);
+      throw new Error(`Contract ABI mismatch. The contract at ${TASK_MANAGER_ADDRESS} might not have the expected createTaskWithETH function. Please verify the contract address and ABI.`);
+    }
+
+    // Get current block timestamp for comparison
+    const currentBlock = await this.provider!.getBlock('latest');
+    const currentBlockTimestamp = currentBlock?.timestamp || Math.floor(Date.now() / 1000);
+    
+    // Double-check due date is in the future using blockchain timestamp
+    if (dueDate <= currentBlockTimestamp) {
+      throw new Error(`Due date must be in the future. Current blockchain time: ${currentBlockTimestamp} (${new Date(currentBlockTimestamp * 1000).toISOString()}), Your due date: ${dueDate} (${new Date(dueDate * 1000).toISOString()})`);
+    }
+
+    // Debug logging
+    console.log('Creating task with ETH:', {
+      title,
+      description,
+      assignee,
+      dueDate,
+      dueDateFormatted: new Date(dueDate * 1000).toISOString(),
+      currentTimestamp: currentBlockTimestamp,
+      currentTimestampFormatted: new Date(currentBlockTimestamp * 1000).toISOString(),
+      rewardAmount: rewardAmount,
+      requiredAmount: requiredAmount.toString(),
+      requiredAmountFormatted: ethers.formatEther(requiredAmount),
+      balance: balance.toString(),
+      balanceFormatted: ethers.formatEther(balance),
+      isDueDateFuture: dueDate > currentBlockTimestamp,
+      isAssigneeValid: assignee !== ethers.ZeroAddress && ethers.isAddress(assignee),
+      isRewardValid: requiredAmount > 0n
+    });
+
+    try {
+      console.log('Sending transaction directly with:', {
+        title,
+        description,
+        assignee,
+        dueDate,
+        value: requiredAmount.toString(),
+        valueFormatted: ethers.formatEther(requiredAmount),
+        currentBlockTimestamp,
+        isDueDateFuture: dueDate > currentBlockTimestamp
+      });
+
+      // Send transaction directly - ethers will estimate gas internally
+      // If it fails, we'll catch the error
+      const tx = await this.taskManager.createTaskWithETH(
+        title,
+        description,
+        assignee,
+        dueDate,
+        { value: requiredAmount }
+      );
+      
+      console.log('Transaction sent:', tx.hash);
+
+      const receipt = await tx.wait();
+      
+      // Extract task ID from event
+      const taskCreatedEvent = receipt.logs.find((log: any) => {
+        try {
+          const parsed = this.taskManager!.interface.parseLog(log);
+          return parsed?.name === "TaskCreated";
+        } catch {
+          return false;
+        }
+      });
+
+      let taskId: bigint | null = null;
+      if (taskCreatedEvent) {
+        const parsed = this.taskManager!.interface.parseLog(taskCreatedEvent);
+        taskId = parsed?.args[0] || null;
+      }
+
+      return {
+        transactionHash: receipt.hash,
+        taskId: taskId ? taskId.toString() : null,
+        receipt
+      };
+    } catch (error: any) {
+      console.error('Transaction error:', error);
+      
+      // Check if it's a revert error
+      if (error.code === 3 || error.message?.includes("revert") || error.message?.includes("execution reverted")) {
+        // The contract reverted - check which requirement failed
+        const errorMsg = "Transaction reverted. The contract rejected the transaction. ";
+        const checks = [];
+        
+        if (requiredAmount === 0n) {
+          checks.push("Reward amount is 0");
+        }
+        if (assignee === ethers.ZeroAddress) {
+          checks.push("Assignee is zero address");
+        }
+        if (dueDate <= currentBlockTimestamp) {
+          checks.push(`Due date (${dueDate}) is not in the future (current: ${currentBlockTimestamp})`);
+        }
+        
+        if (checks.length > 0) {
+          throw new Error(errorMsg + "Issues found: " + checks.join(", "));
+        }
+        
+        // If we can't determine the issue, provide generic message
+        throw new Error(errorMsg + "Possible reasons: 1) Contract address might be wrong, 2) Contract ABI doesn't match, 3) Contract has additional requirements we don't know about. Please verify the contract at address: " + TASK_MANAGER_ADDRESS);
+      }
+      
+      // Provide more helpful error messages
+      if (error.reason) {
+        throw new Error(`Contract error: ${error.reason}`);
+      } else if (error.data?.message) {
+        throw new Error(`Contract error: ${error.data.message}`);
+      }
+      
+      throw error;
+    }
+  }
+
+  async createTaskWithToken(
+    title: string,
+    description: string,
+    assignee: string,
+    rewardAmount: string, // Amount in tokens (e.g., "100")
+    tokenAddress: string,
+    dueDate: number
+  ) {
+    if (!TASK_MANAGER_ADDRESS) {
+      throw new Error("TaskManager contract address not configured. Please set VITE_TASK_MANAGER_CONTRACT_ADDRESS in your .env file.");
+    }
+
+    if (!this.taskManager || !this.rewardToken) {
+      throw new Error("Not connected to wallet or token contract not configured");
+    }
+
+    if (!ethers.isAddress(assignee)) {
+      throw new Error("Invalid assignee address");
+    }
+
+    if (!ethers.isAddress(tokenAddress)) {
+      throw new Error("Invalid token address");
+    }
+
+    // First, approve the contract to spend tokens
+    const amount = ethers.parseUnits(rewardAmount, 18); // Assuming 18 decimals
+    const approveTx = await this.rewardToken.approve(TASK_MANAGER_ADDRESS, amount);
+    await approveTx.wait();
+
+    // Then create the task
+    const tx = await this.taskManager.createTaskWithToken(
+      title,
+      description,
+      assignee,
+      amount,
+      tokenAddress,
+      dueDate
+    );
+
+    const receipt = await tx.wait();
+    
+    // Extract task ID from event
+    const taskCreatedEvent = receipt.logs.find((log: any) => {
+      try {
+        const parsed = this.taskManager!.interface.parseLog(log);
+        return parsed?.name === "TaskCreated";
+      } catch {
+        return false;
+      }
+    });
+
+    let taskId: bigint | null = null;
+    if (taskCreatedEvent) {
+      const parsed = this.taskManager!.interface.parseLog(taskCreatedEvent);
+      taskId = parsed?.args[0] || null;
+    }
+
+    return {
+      transactionHash: receipt.hash,
+      taskId: taskId ? taskId.toString() : null,
+      receipt
+    };
+  }
+
+  async completeTask(taskId: number | string) {
+    if (!this.taskManager) {
+      throw new Error("Not connected to wallet");
+    }
+
+    const tx = await this.taskManager.completeTask(taskId);
+    return await tx.wait();
+  }
+
+  async getTask(taskId: number | string) {
+    if (!this.taskManager) {
+      throw new Error("Not connected to wallet");
+    }
+    return await this.taskManager.getTask(taskId);
+  }
+
+  async getUserTasks(userAddress: string) {
+    if (!this.taskManager) {
+      throw new Error("Not connected to wallet");
+    }
+    return await this.taskManager.getUserTasks(userAddress);
+  }
+
+  async getBalance(): Promise<string> {
+    if (!this.signer) {
+      throw new Error("Not connected to wallet");
+    }
+    const balance = await this.provider!.getBalance(await this.signer.getAddress());
+    return ethers.formatEther(balance);
+  }
+
+  async getTokenBalance(): Promise<string> {
+    if (!this.rewardToken || !this.signer) {
+      throw new Error("Not connected to wallet or token not configured");
+    }
+    const address = await this.signer.getAddress();
+    const balance = await this.rewardToken.balanceOf(address);
+    return ethers.formatUnits(balance, 18);
+  }
+}
+
+export const contractService = new ContractService();
+

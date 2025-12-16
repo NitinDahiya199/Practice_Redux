@@ -553,11 +553,33 @@ app.get('/api/tasks', async (req, res) => {
 // POST /api/tasks - Create a new task
 app.post('/api/tasks', async (req, res) => {
   try {
-    const { title, description, userId, dueDate } = req.body;
+    const { 
+      title, 
+      description, 
+      userId, 
+      dueDate,
+      priority,
+      assignee,
+      tags,
+      attachments,
+      hasWeb3Reward,
+      rewardAmount,
+      rewardToken,
+      transactionHash,
+      blockchainTaskId
+    } = req.body;
+
+    // If Web3 reward is enabled, blockchain data should be provided by frontend
+    // Frontend creates task on blockchain first, then sends data to backend
 
     // Validation
     if (!title || !userId) {
       return res.status(400).json({ error: 'Title and user ID are required' });
+    }
+
+    // Validate priority if provided
+    if (priority && !['Low', 'Medium', 'High'].includes(priority)) {
+      return res.status(400).json({ error: 'Priority must be Low, Medium, or High' });
     }
 
     // Verify user exists
@@ -569,6 +591,28 @@ app.post('/api/tasks', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Convert hasWeb3Reward to boolean (handle string "true"/"1" or boolean)
+    let finalHasWeb3Reward = false;
+    if (hasWeb3Reward !== undefined && hasWeb3Reward !== null) {
+      if (typeof hasWeb3Reward === 'string') {
+        finalHasWeb3Reward = hasWeb3Reward === 'true' || hasWeb3Reward === '1';
+      } else {
+        finalHasWeb3Reward = Boolean(hasWeb3Reward);
+      }
+    }
+    
+    // If Web3 reward is enabled, validate blockchain data
+    // Note: Frontend creates task on blockchain first, then sends data here
+    // If Web3 reward is enabled but blockchain data is missing, disable Web3 reward
+    if (finalHasWeb3Reward) {
+      if (!transactionHash || !blockchainTaskId || !rewardAmount) {
+        // If Web3 reward was requested but blockchain creation failed,
+        // create task without Web3 reward instead of failing
+        console.warn('Web3 reward requested but blockchain data missing. Creating task without Web3 reward.');
+        finalHasWeb3Reward = false;
+      }
+    }
+
     // Create task
     const task = await prisma.task.create({
       data: {
@@ -577,8 +621,20 @@ app.post('/api/tasks', async (req, res) => {
         userId,
         completed: false,
         ...(dueDate && { dueDate: new Date(dueDate) }),
+        ...(priority && { priority }),
+        ...(assignee && { assignee }),
+        ...(tags && Array.isArray(tags) && { tags }),
+        ...(attachments && Array.isArray(attachments) && { attachments }),
+        ...(finalHasWeb3Reward !== undefined && { hasWeb3Reward: finalHasWeb3Reward }),
+        ...(blockchainTaskId && finalHasWeb3Reward && { blockchainTaskId }),
+        ...(rewardAmount && finalHasWeb3Reward && { rewardAmount }),
+        ...(rewardToken && finalHasWeb3Reward && { rewardToken }),
+        ...(transactionHash && finalHasWeb3Reward && { transactionHash }),
       },
     });
+
+    // TODO: If assignee is provided, send notification
+    // TODO: If real-time is enabled, broadcast to team members
 
     res.status(201).json(task);
   } catch (error: any) {

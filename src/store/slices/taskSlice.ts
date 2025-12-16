@@ -1,6 +1,21 @@
 // src/store/slices/taskSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
+// Helper function to safely format dates
+const formatDate = (dateString: string | Date | null | undefined): string => {
+  if (!dateString) return 'Invalid Date';
+  try {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleDateString();
+  } catch (e) {
+    console.error('Error formatting date:', e);
+    return 'Invalid Date';
+  }
+};
+
 export interface Task {
   id: string;
   title: string;
@@ -9,6 +24,16 @@ export interface Task {
   createdAt: string;
   userId: string;
   dueDate?: string | null;
+  priority?: string | null; // Low, Medium, High
+  assignee?: string | null; // User ID or wallet address
+  tags?: string[]; // Array of tags
+  attachments?: string[]; // Array of attachment URLs
+  // Web3 fields
+  hasWeb3Reward?: boolean;
+  blockchainTaskId?: string | null;
+  rewardAmount?: string | null;
+  rewardToken?: string | null;
+  transactionHash?: string | null;
 }
 
 interface TaskState {
@@ -39,7 +64,7 @@ export const fetchTasks = createAsyncThunk(
       // Format createdAt and dueDate dates to strings
       return tasks.map((task: any) => ({
         ...task,
-        createdAt: new Date(task.createdAt).toLocaleDateString(),
+        createdAt: formatDate(task.createdAt),
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
       }));
     } catch (error: any) {
@@ -50,7 +75,21 @@ export const fetchTasks = createAsyncThunk(
 
 export const createTask = createAsyncThunk(
   'tasks/createTask',
-  async (taskData: { title: string; description: string; userId: string; dueDate?: string | null }, { rejectWithValue }) => {
+  async (taskData: { 
+    title: string; 
+    description: string; 
+    userId: string; 
+    dueDate?: string | null;
+    priority?: string | null;
+    assignee?: string | null;
+    tags?: string[];
+    attachments?: string[];
+    hasWeb3Reward?: boolean;
+    rewardAmount?: string | null;
+    rewardToken?: string | null;
+    transactionHash?: string | null;
+    blockchainTaskId?: string | null;
+  }, { rejectWithValue }) => {
     try {
       const response = await fetch('http://localhost:5000/api/tasks', {
         method: 'POST',
@@ -66,7 +105,7 @@ export const createTask = createAsyncThunk(
       const task = await response.json();
       return {
         ...task,
-        createdAt: new Date(task.createdAt).toLocaleDateString(),
+        createdAt: formatDate(task.createdAt),
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
       };
     } catch (error: any) {
@@ -93,7 +132,7 @@ export const updateTask = createAsyncThunk(
       const task = await response.json();
       return {
         ...task,
-        createdAt: new Date(task.createdAt).toLocaleDateString(),
+        createdAt: formatDate(task.createdAt),
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
       };
     } catch (error: any) {
@@ -138,7 +177,7 @@ export const toggleTaskComplete = createAsyncThunk(
       const task = await response.json();
       return {
         ...task,
-        createdAt: new Date(task.createdAt).toLocaleDateString(),
+        createdAt: formatDate(task.createdAt),
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
       };
     } catch (error: any) {
@@ -172,17 +211,43 @@ const taskSlice = createSlice({
         state.error = action.payload as string;
       })
       // Create task
-      .addCase(createTask.pending, (state) => {
+      .addCase(createTask.pending, (state, action) => {
         state.isLoading = true;
         state.error = null;
+        // Optimistic update - add temporary task
+        if (action.meta.arg) {
+          const optimisticTask: Task = {
+            id: `temp-${Date.now()}`,
+            title: action.meta.arg.title,
+            description: action.meta.arg.description || '',
+            completed: false,
+            createdAt: new Date().toLocaleDateString(),
+            userId: action.meta.arg.userId,
+            dueDate: action.meta.arg.dueDate || null,
+            priority: action.meta.arg.priority || null,
+            assignee: action.meta.arg.assignee || null,
+            tags: action.meta.arg.tags || [],
+            attachments: action.meta.arg.attachments || [],
+            hasWeb3Reward: action.meta.arg.hasWeb3Reward || false,
+          };
+          state.tasks.unshift(optimisticTask);
+        }
       })
       .addCase(createTask.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.tasks.push(action.payload);
+        // Remove optimistic task and add real task
+        state.tasks = state.tasks.filter(task => !task.id.startsWith('temp-'));
+        state.tasks.unshift({
+          ...action.payload,
+          createdAt: formatDate(action.payload.createdAt),
+          dueDate: action.payload.dueDate ? new Date(action.payload.dueDate).toISOString() : null,
+        });
         state.error = null;
       })
       .addCase(createTask.rejected, (state, action) => {
         state.isLoading = false;
+        // Remove optimistic task on error
+        state.tasks = state.tasks.filter(task => !task.id.startsWith('temp-'));
         state.error = action.payload as string;
       })
       // Update task

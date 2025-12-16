@@ -1,11 +1,14 @@
 // src/pages/Tasks.tsx
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { ethers } from 'ethers';
 import { Button, Input, TextArea, Card, CardHeader, CardTitle, CardBody, FormGroup, Label, PageContainer } from '../components/common';
 import { DatePicker } from '../components/common/DatePicker';
 import { TimePicker } from '../components/common/TimePicker';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchTasks, createTask, updateTask, deleteTask, toggleTaskComplete, Task } from '../store/slices/taskSlice';
+import { contractService } from '../services/contractService';
+import { useToast } from '../components/common/Toast';
 
 const TasksContainer = styled(PageContainer)`
   max-width: 900px;
@@ -301,7 +304,15 @@ export const Tasks = () => {
     description: '',
     dueDate: '',
     dueTime: '',
+    priority: 'Medium',
+    assignee: '',
+    tags: '',
+    hasWeb3Reward: false,
+    rewardAmount: '',
+    rewardToken: '', // Empty for ETH, or token address
   });
+  const { showToast } = useToast();
+  const [isCreatingBlockchain, setIsCreatingBlockchain] = useState(false);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; taskId: string | null }>({
     show: false,
@@ -397,44 +408,223 @@ export const Tasks = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) {
+      showToast('You must be logged in to create tasks', 'error');
+      return;
+    }
+
+    // Validation
+    if (!formData.title.trim()) {
+      showToast('Title is required', 'error');
       return;
     }
 
     // Combine date and time into ISO string
     let dueDateISO: string | null = null;
+    let dueDateUnix: number | null = null;
     if (formData.dueDate && formData.dueTime) {
       const dateTime = new Date(`${formData.dueDate}T${formData.dueTime}`);
       dueDateISO = dateTime.toISOString();
+      dueDateUnix = Math.floor(dateTime.getTime() / 1000);
     } else if (formData.dueDate) {
       // If only date is provided, set time to end of day
       const dateTime = new Date(`${formData.dueDate}T23:59:59`);
       dueDateISO = dateTime.toISOString();
+      dueDateUnix = Math.floor(dateTime.getTime() / 1000);
     }
+
+    // Parse tags
+    const tagsArray = formData.tags
+      ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+      : [];
 
     if (editingTask) {
       // Update existing task
-      await dispatch(
-        updateTask({
-          id: editingTask,
-          title: formData.title,
-          description: formData.description,
-          dueDate: dueDateISO,
-        })
-      ).unwrap();
-      setEditingTask(null);
+      try {
+        await dispatch(
+          updateTask({
+            id: editingTask,
+            title: formData.title,
+            description: formData.description,
+            dueDate: dueDateISO,
+            priority: formData.priority,
+            assignee: formData.assignee || null,
+            tags: tagsArray,
+          })
+        ).unwrap();
+        showToast('Task updated successfully!', 'success');
+        setEditingTask(null);
+        setFormData({ title: '', description: '', dueDate: '', dueTime: '', priority: 'Medium', assignee: '', tags: '', hasWeb3Reward: false, rewardAmount: '', rewardToken: '' });
+        setShowForm(false);
+      } catch (error: any) {
+        showToast(error.message || 'Failed to update task', 'error');
+      }
     } else {
       // Create new task
-      await dispatch(
-        createTask({
-          title: formData.title,
-          description: formData.description,
-          userId: user.id,
-          dueDate: dueDateISO,
-        })
-      ).unwrap();
+      try {
+        let transactionHash: string | null = null;
+        let blockchainTaskId: string | null = null;
+
+        // If Web3 reward is enabled, create task on blockchain first
+        if (formData.hasWeb3Reward && formData.rewardAmount) {
+          // Check if contract address is configured
+          const contractAddress = import.meta.env.VITE_TASK_MANAGER_CONTRACT_ADDRESS;
+          if (!contractAddress) {
+            showToast('Web3 rewards are not configured. Task will be created without Web3 reward.', 'warning');
+            formData.hasWeb3Reward = false;
+            transactionHash = null;
+            blockchainTaskId = null;
+          } else {
+            if (!dueDateUnix) {
+              showToast('Due date is required for Web3 rewards', 'error');
+              return;
+            }
+
+            setIsCreatingBlockchain(true);
+            try {
+              // Connect wallet if not connected
+              if (!await contractService.isConnected()) {
+                await contractService.connect();
+              }
+
+            // Get assignee address - use current user's address if not provided
+            let assigneeAddress = formData.assignee?.trim();
+            if (!assigneeAddress) {
+              assigneeAddress = await contractService.getCurrentAddress();
+            }
+            
+            // Validate assignee address format (case-insensitive)
+            if (!/^0x[a-fA-F0-9]{40}$/i.test(assigneeAddress)) {
+              showToast('Invalid assignee wallet address format. Must be a valid Ethereum address (0x followed by 40 hex characters)', 'error');
+              setIsCreatingBlockchain(false);
+              return;
+            }
+
+            // Normalize address to checksum format for comparison
+            const normalizedAssignee = assigneeAddress.toLowerCase();
+            
+            // Validate assignee is not zero address
+            if (normalizedAssignee === '0x0000000000000000000000000000000000000000') {
+              showToast('Assignee cannot be the zero address', 'error');
+              setIsCreatingBlockchain(false);
+              return;
+            }
+            
+            // Use checksum address for the contract call (ethers will handle this)
+            // Keep the original format, ethers.getAddress will normalize it
+
+            // Validate due date is in the future
+            // Use a small buffer (60 seconds) to account for blockchain timestamp differences
+            const currentTimestamp = Math.floor(Date.now() / 1000);
+            const bufferSeconds = 60; // 1 minute buffer
+            if (dueDateUnix <= currentTimestamp + bufferSeconds) {
+              showToast(`Due date must be at least ${bufferSeconds} seconds in the future`, 'error');
+              setIsCreatingBlockchain(false);
+              return;
+            }
+
+              // Create task on blockchain
+              if (formData.rewardToken) {
+                // Token reward
+                const result = await contractService.createTaskWithToken(
+                  formData.title,
+                  formData.description,
+                  assigneeAddress,
+                  formData.rewardAmount,
+                  formData.rewardToken,
+                  dueDateUnix
+                );
+                transactionHash = result.transactionHash;
+                blockchainTaskId = result.taskId;
+              } else {
+              // ETH reward - validate reward amount
+              const rewardAmountStr = formData.rewardAmount.trim();
+              if (!rewardAmountStr || rewardAmountStr === '') {
+                showToast('Reward amount is required', 'error');
+                setIsCreatingBlockchain(false);
+                return;
+              }
+              
+              const rewardAmountNum = parseFloat(rewardAmountStr);
+              if (isNaN(rewardAmountNum) || rewardAmountNum <= 0) {
+                showToast(`Reward amount must be greater than 0. You entered: ${rewardAmountStr} ETH`, 'error');
+                setIsCreatingBlockchain(false);
+                return;
+              }
+              
+              // Validate the amount can be parsed by ethers
+              try {
+                const testAmount = ethers.parseEther(rewardAmountStr);
+                if (testAmount === 0n) {
+                  showToast('Reward amount is too small. Minimum: 0.000000000000000001 ETH (1 wei)', 'error');
+                  setIsCreatingBlockchain(false);
+                  return;
+                }
+              } catch (parseError: any) {
+                showToast(`Invalid reward amount format: ${parseError.message}`, 'error');
+                setIsCreatingBlockchain(false);
+                return;
+              }
+
+              const result = await contractService.createTaskWithETH(
+                formData.title,
+                formData.description,
+                assigneeAddress,
+                dueDateUnix,
+                rewardAmountStr
+              );
+                transactionHash = result.transactionHash;
+                blockchainTaskId = result.taskId;
+              }
+
+              showToast('Task created on blockchain!', 'success');
+            } catch (error: any) {
+              console.error('Blockchain task creation error:', error);
+              showToast(`Blockchain error: ${error.message}. Task will be created without Web3 reward.`, 'warning');
+              // Continue to create task in database without blockchain data
+              // Reset Web3 reward flag so task is created as regular task
+              formData.hasWeb3Reward = false;
+              transactionHash = null;
+              blockchainTaskId = null;
+            } finally {
+              setIsCreatingBlockchain(false);
+            }
+          }
+        }
+
+        // Create task in database
+        // Only include Web3 data if blockchain creation was successful
+        const hasSuccessfulWeb3Reward = formData.hasWeb3Reward && transactionHash && blockchainTaskId;
+        
+        await dispatch(
+          createTask({
+            title: formData.title,
+            description: formData.description,
+            userId: user.id,
+            dueDate: dueDateISO,
+            priority: formData.priority,
+            assignee: formData.assignee || null,
+            tags: tagsArray,
+            hasWeb3Reward: hasSuccessfulWeb3Reward,
+            rewardAmount: hasSuccessfulWeb3Reward ? formData.rewardAmount : null,
+            rewardToken: hasSuccessfulWeb3Reward ? (formData.rewardToken || null) : null,
+            transactionHash: transactionHash || null,
+            blockchainTaskId: blockchainTaskId || null,
+          })
+        ).unwrap();
+
+        // Update task with blockchain data if created
+        if (transactionHash && blockchainTaskId) {
+          // The task was created optimistically, we'd need to update it
+          // For now, the backend will handle this via the API
+        }
+
+        showToast('Task created successfully!', 'success');
+        setFormData({ title: '', description: '', dueDate: '', dueTime: '', priority: 'Medium', assignee: '', tags: '', hasWeb3Reward: false, rewardAmount: '', rewardToken: '' });
+        setShowForm(false);
+      } catch (error: any) {
+        showToast(error.message || 'Failed to create task', 'error');
+      }
     }
-    setFormData({ title: '', description: '', dueDate: '', dueTime: '' });
-    setShowForm(false);
   };
 
   const handleEdit = (task: Task) => {
@@ -447,9 +637,15 @@ export const Tasks = () => {
     }
     setFormData({ 
       title: task.title, 
-      description: task.description,
+      description: task.description || '',
       dueDate,
       dueTime,
+      priority: task.priority || 'Medium',
+      assignee: task.assignee || '',
+      tags: task.tags?.join(', ') || '',
+      hasWeb3Reward: task.hasWeb3Reward || false,
+      rewardAmount: task.rewardAmount || '',
+      rewardToken: task.rewardToken || '',
     });
     setEditingTask(task.id);
     setShowForm(true);
@@ -486,7 +682,7 @@ export const Tasks = () => {
   };
 
   const handleCancel = () => {
-    setFormData({ title: '', description: '', dueDate: '', dueTime: '' });
+    setFormData({ title: '', description: '', dueDate: '', dueTime: '', priority: 'Medium', assignee: '', tags: '', hasWeb3Reward: false, rewardAmount: '', rewardToken: '' });
     setEditingTask(null);
     setShowForm(false);
   };
@@ -625,6 +821,42 @@ export const Tasks = () => {
                 />
               </FormGroup>
               <FormGroup>
+                <Label htmlFor="priority">Priority</Label>
+                <Input
+                  as="select"
+                  id="priority"
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleChange}
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </Input>
+              </FormGroup>
+              <FormGroup>
+                <Label htmlFor="assignee">Assignee (Optional - Wallet Address or User ID)</Label>
+                <Input
+                  type="text"
+                  id="assignee"
+                  name="assignee"
+                  value={formData.assignee}
+                  onChange={handleChange}
+                  placeholder="0x... or user ID"
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label htmlFor="tags">Tags (Optional - comma separated)</Label>
+                <Input
+                  type="text"
+                  id="tags"
+                  name="tags"
+                  value={formData.tags}
+                  onChange={handleChange}
+                  placeholder="tag1, tag2, tag3"
+                />
+              </FormGroup>
+              <FormGroup>
                 <Label htmlFor="dueDate">Due Date & Time (Optional)</Label>
                 <DateTimeContainer>
                   <DateTimeInputWrapper>
@@ -693,8 +925,55 @@ export const Tasks = () => {
                   </DateTimeInputWrapper>
                 </DateTimeContainer>
               </FormGroup>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Loading...' : editingTask ? 'Update Task' : 'Create Task'}
+              <FormGroup>
+                <CheckboxWrapper>
+                  <Checkbox
+                    type="checkbox"
+                    id="hasWeb3Reward"
+                    name="hasWeb3Reward"
+                    checked={formData.hasWeb3Reward}
+                    onChange={(e) => setFormData({ ...formData, hasWeb3Reward: e.target.checked })}
+                  />
+                  <CheckboxLabel completed={false}>
+                    Enable Web3 Crypto Reward
+                  </CheckboxLabel>
+                </CheckboxWrapper>
+              </FormGroup>
+              {formData.hasWeb3Reward && (
+                <>
+                  <FormGroup>
+                    <Label htmlFor="rewardAmount">Reward Amount</Label>
+                    <Input
+                      type="text"
+                      id="rewardAmount"
+                      name="rewardAmount"
+                      value={formData.rewardAmount}
+                      onChange={handleChange}
+                      placeholder="0.1 (for ETH) or 100 (for tokens)"
+                      required={formData.hasWeb3Reward}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label htmlFor="rewardToken">Token Address (Optional - leave empty for ETH)</Label>
+                    <Input
+                      type="text"
+                      id="rewardToken"
+                      name="rewardToken"
+                      value={formData.rewardToken}
+                      onChange={handleChange}
+                      placeholder="0x... (leave empty for ETH)"
+                    />
+                  </FormGroup>
+                </>
+              )}
+              <Button type="submit" disabled={isLoading || isCreatingBlockchain}>
+                {isCreatingBlockchain 
+                  ? 'Creating on Blockchain...' 
+                  : isLoading 
+                    ? 'Loading...' 
+                    : editingTask 
+                      ? 'Update Task' 
+                      : 'Create Task'}
               </Button>
               <p style={{ fontSize: '0.875rem', color: '#94A3B8', marginTop: '0.5rem', textAlign: 'center' }}>
                 Press Ctrl+Enter (Cmd+Enter on Mac) to submit

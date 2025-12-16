@@ -30,4 +30,14 @@ model Task {
   user        User      @relation(fields: [userId], references: [id])
   createdAt   DateTime  @default(now())
   dueDate     DateTime?
+  priority    String?   @default("Medium") // Low, Medium, High
+  assignee    String?   // User ID or wallet address
+  tags        String[]  @default([]) // Array of tags
+  attachments String[]  @default([]) // Array of attachment URLs/IPFS hashes
+  // Web3 fields
+  hasWeb3Reward Boolean @default(false)
+  blockchainTaskId String? // Task ID from smart contract
+  rewardAmount    String? // Reward amount in wei or token units
+  rewardToken     String? // Token address (null for ETH)
+  transactionHash String? // Transaction hash when created on blockchain
 }
