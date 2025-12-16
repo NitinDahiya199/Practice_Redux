@@ -647,7 +647,17 @@ app.post('/api/tasks', async (req, res) => {
 app.put('/api/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, completed, dueDate } = req.body;
+    const { 
+      title, 
+      description, 
+      completed, 
+      dueDate,
+      priority,
+      assignee,
+      tags,
+      attachments,
+      userId // Required to verify ownership
+    } = req.body;
 
     // Check if task exists
     const existingTask = await prisma.task.findUnique({
@@ -658,21 +668,56 @@ app.put('/api/tasks/:id', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // Validate ownership/permissions - only task creator can update
+    if (!userId || existingTask.userId !== userId) {
+      return res.status(403).json({ error: 'You do not have permission to update this task' });
+    }
+
+    // Validation
+    if (title !== undefined && !title.trim()) {
+      return res.status(400).json({ error: 'Title cannot be empty' });
+    }
+
+    // Validate priority if provided
+    if (priority && !['Low', 'Medium', 'High'].includes(priority)) {
+      return res.status(400).json({ error: 'Priority must be Low, Medium, or High' });
+    }
+
+    // Track changes for notifications
+    const assigneeChanged = assignee !== undefined && assignee !== existingTask.assignee;
+    const dueDateChanged = dueDate !== undefined && dueDate !== existingTask.dueDate;
+
     // Update task
     const task = await prisma.task.update({
       where: { id },
       data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
+        ...(title !== undefined && { title: title.trim() }),
+        ...(description !== undefined && { description: description || '' }),
         ...(completed !== undefined && { completed }),
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+        ...(priority !== undefined && { priority }),
+        ...(assignee !== undefined && { assignee: assignee || null }),
+        ...(tags !== undefined && Array.isArray(tags) && { tags }),
+        ...(attachments !== undefined && Array.isArray(attachments) && { attachments }),
       },
     });
+
+    // TODO: If assignee changed: Send notifications
+    if (assigneeChanged && assignee) {
+      console.log(`Assignee changed for task ${id}. New assignee: ${assignee}`);
+      // TODO: Implement notification system
+    }
+
+    // TODO: If due date changed: Update reminders
+    if (dueDateChanged) {
+      console.log(`Due date changed for task ${id}. New due date: ${dueDate}`);
+      // TODO: Implement reminder system
+    }
 
     res.status(200).json(task);
   } catch (error: any) {
     console.error('Update task error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 

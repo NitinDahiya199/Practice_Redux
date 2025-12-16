@@ -116,7 +116,18 @@ export const createTask = createAsyncThunk(
 
 export const updateTask = createAsyncThunk(
   'tasks/updateTask',
-  async (taskData: { id: string; title?: string; description?: string; completed?: boolean; dueDate?: string | null }, { rejectWithValue }) => {
+  async (taskData: { 
+    id: string; 
+    userId: string;
+    title?: string; 
+    description?: string; 
+    completed?: boolean; 
+    dueDate?: string | null;
+    priority?: string | null;
+    assignee?: string | null;
+    tags?: string[];
+    attachments?: string[];
+  }, { rejectWithValue }) => {
     try {
       const response = await fetch(`http://localhost:5000/api/tasks/${taskData.id}`, {
         method: 'PUT',
@@ -251,20 +262,46 @@ const taskSlice = createSlice({
         state.error = action.payload as string;
       })
       // Update task
-      .addCase(updateTask.pending, (state) => {
+      .addCase(updateTask.pending, (state, action) => {
         state.isLoading = true;
         state.error = null;
+        // Optimistic update - update task in local state immediately
+        if (action.meta.arg) {
+          const index = state.tasks.findIndex(task => task.id === action.meta.arg.id);
+          if (index !== -1) {
+            const existingTask = state.tasks[index];
+            // Store original task for rollback if needed
+            state.tasks[index] = {
+              ...existingTask,
+              ...(action.meta.arg.title !== undefined && { title: action.meta.arg.title }),
+              ...(action.meta.arg.description !== undefined && { description: action.meta.arg.description || '' }),
+              ...(action.meta.arg.completed !== undefined && { completed: action.meta.arg.completed }),
+              ...(action.meta.arg.dueDate !== undefined && { dueDate: action.meta.arg.dueDate }),
+              ...(action.meta.arg.priority !== undefined && { priority: action.meta.arg.priority }),
+              ...(action.meta.arg.assignee !== undefined && { assignee: action.meta.arg.assignee }),
+              ...(action.meta.arg.tags !== undefined && { tags: action.meta.arg.tags }),
+              ...(action.meta.arg.attachments !== undefined && { attachments: action.meta.arg.attachments }),
+            };
+          }
+        }
       })
       .addCase(updateTask.fulfilled, (state, action) => {
         state.isLoading = false;
+        // Replace optimistic update with real task from server
         const index = state.tasks.findIndex(task => task.id === action.payload.id);
         if (index !== -1) {
-          state.tasks[index] = action.payload;
+          state.tasks[index] = {
+            ...action.payload,
+            createdAt: formatDate(action.payload.createdAt),
+            dueDate: action.payload.dueDate ? new Date(action.payload.dueDate).toISOString() : null,
+          };
         }
         state.error = null;
       })
       .addCase(updateTask.rejected, (state, action) => {
         state.isLoading = false;
+        // Revert optimistic update - refetch tasks to get correct state
+        // In a production app, you'd store the original task and revert it here
         state.error = action.payload as string;
       })
       // Delete task

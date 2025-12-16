@@ -418,6 +418,69 @@ export const Tasks = () => {
       return;
     }
 
+    // Check if editing existing task
+    if (editingTask) {
+      // UPDATE TASK FLOW
+      try {
+        // Permission check - verify user owns the task
+        const taskToEdit = tasks.find(t => t.id === editingTask);
+        if (!taskToEdit) {
+          showToast('Task not found', 'error');
+          setEditingTask(null);
+          setShowForm(false);
+          return;
+        }
+
+        // CHECK: User has permission?
+        if (taskToEdit.userId !== user.id) {
+          showToast('You do not have permission to edit this task', 'error');
+          setEditingTask(null);
+          setShowForm(false);
+          return;
+        }
+
+        // Combine date and time into ISO string
+        let dueDateISO: string | null = null;
+        if (formData.dueDate && formData.dueTime) {
+          const dateTime = new Date(`${formData.dueDate}T${formData.dueTime}`);
+          dueDateISO = dateTime.toISOString();
+        } else if (formData.dueDate) {
+          const dateTime = new Date(`${formData.dueDate}T23:59:59`);
+          dueDateISO = dateTime.toISOString();
+        }
+
+        // Parse tags
+        const tagsArray = formData.tags
+          ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+          : [];
+
+        // Update task via Redux
+        await dispatch(
+          updateTask({
+            id: editingTask,
+            userId: user.id,
+            title: formData.title,
+            description: formData.description,
+            dueDate: dueDateISO,
+            priority: formData.priority,
+            assignee: formData.assignee || null,
+            tags: tagsArray,
+          })
+        ).unwrap();
+
+        showToast('Task updated successfully!', 'success');
+        setFormData({ title: '', description: '', dueDate: '', dueTime: '', priority: 'Medium', assignee: '', tags: '', hasWeb3Reward: false, rewardAmount: '', rewardToken: '' });
+        setEditingTask(null);
+        setShowForm(false);
+      } catch (error: any) {
+        showToast(error.message || 'Failed to update task', 'error');
+        // Form stays open on error so user can retry
+      }
+      return;
+    }
+
+    // CREATE TASK FLOW (existing code)
+
     // Combine date and time into ISO string
     let dueDateISO: string | null = null;
     let dueDateUnix: number | null = null;
@@ -628,6 +691,13 @@ export const Tasks = () => {
   };
 
   const handleEdit = (task: Task) => {
+    // CHECK: User has permission?
+    if (!user?.id || task.userId !== user.id) {
+      showToast('You do not have permission to edit this task', 'error');
+      return;
+    }
+
+    // Load task data into form
     let dueDate = '';
     let dueTime = '';
     if (task.dueDate) {
