@@ -1,4 +1,3 @@
-// src/store/slices/userSlice.ts
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { API_ENDPOINTS } from '../../config/api';
 

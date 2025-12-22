@@ -1,4 +1,3 @@
-// src/pages/Profile.tsx
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Button, Input, Card, CardHeader, CardTitle, CardBody, FormGroup, Label, PageContainer, MFAVerification } from '../components/common';

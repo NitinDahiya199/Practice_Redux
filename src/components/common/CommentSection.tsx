@@ -1,4 +1,3 @@
-// src/components/common/CommentSection.tsx
 import { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -113,27 +112,21 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ taskId, userId }
   const isLoading = useAppSelector((state) => state.comments.isLoading);
 
   useEffect(() => {
-    // Fetch comments when component mounts
     dispatch(fetchComments(taskId));
   }, [dispatch, taskId]);
 
   useEffect(() => {
-    // Scroll to bottom when new comments are added
     if (commentsEndRef.current && comments.length > 0) {
       commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [comments]);
 
-  // Listen for real-time comment additions via WebSocket
   useEffect(() => {
     const handleCommentAdded = (data: { comment: any }) => {
-      // Comment is already added via Redux action from realtimeService
-      // Show notification for new comments from other users
       if (data.comment.userId !== userId) {
         const userName = data.comment.userName || data.comment.user?.name || 'Someone';
         showToast(`${userName} commented`, 'info');
         
-        // Mark comment as new for highlighting
         if (data.comment.id) {
           setNewCommentIds((prev) => new Set([...prev, data.comment.id]));
           setTimeout(() => {
@@ -147,8 +140,6 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ taskId, userId }
       }
     };
 
-    // Note: The realtimeService already dispatches addCommentFromSocket
-    // This is just for showing notifications
     const socket = (realtimeService as any).socket;
     if (socket) {
       socket.on('comment:added', handleCommentAdded);
@@ -177,10 +168,8 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ taskId, userId }
         userId,
       })).unwrap();
 
-      // Mark comment as new for highlighting
       if (result.comment) {
         setNewCommentIds(new Set([...newCommentIds, result.comment.id]));
-        // Remove highlight after animation
         setTimeout(() => {
           setNewCommentIds(new Set());
         }, 500);

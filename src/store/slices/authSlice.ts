@@ -1,4 +1,3 @@
-// src/store/slices/authSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { API_ENDPOINTS } from '../../config/api';
 
@@ -21,7 +20,6 @@ interface AuthState {
   mfaError: string | null;
 }
 
-// Load initial state from localStorage
 const loadAuthState = (): AuthState => {
   try {
     const storedAuth = localStorage.getItem('auth');

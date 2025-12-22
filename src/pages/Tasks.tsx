@@ -1,4 +1,3 @@
-// src/pages/Tasks.tsx
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { ethers } from 'ethers';
@@ -429,12 +428,10 @@ export const Tasks = () => {
   const [searchInput, setSearchInput] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
   
-  // Collaborative editing state
   const [typingUsers, setTypingUsers] = useState<Map<string, { userName: string; timeoutId: NodeJS.Timeout }>>(new Map());
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [isTyping, setIsTyping] = useState(false);
 
-  // Highlight matching text in search results
   const highlightText = (text: string, query: string): React.ReactNode => {
     if (!showSearchResults || !query || query.length < 2) return text;
     
@@ -451,14 +448,12 @@ export const Tasks = () => {
     );
   };
 
-  // Fetch tasks when component mounts or user changes
   useEffect(() => {
     if (user?.id) {
       dispatch(fetchTasks(user.id));
     }
   }, [dispatch, user?.id]);
 
-  // Join task rooms for all user's tasks when component mounts
   useEffect(() => {
     if (tasks.length > 0) {
       tasks.forEach(task => {
@@ -476,35 +471,25 @@ export const Tasks = () => {
     };
   }, [tasks]);
 
-  // Prevent body scrolling when modal is open
   useEffect(() => {
     if (showForm) {
-      // Save current overflow style
       const originalOverflow = document.body.style.overflow;
-      // Prevent scrolling on body
       document.body.style.overflow = 'hidden';
       
       return () => {
-        // Restore original overflow when modal closes
         document.body.style.overflow = originalOverflow;
       };
     }
   }, [showForm]);
 
-  // Debounce search (300ms delay)
   useEffect(() => {
     if (!user?.id) return;
 
     const timeoutId = setTimeout(() => {
       if (searchInput.trim().length >= 2) {
-        // >= 2 characters → Continue with search
         dispatch(searchTasks({ query: searchInput.trim(), userId: user.id }));
         setShowSearchResults(true);
-      } else if (searchInput.trim().length === 0) {
-        // Empty query → Show recent tasks
-        setShowSearchResults(false);
       } else {
-        // < 2 characters → Show recent tasks
         setShowSearchResults(false);
       }
     }, 300);
@@ -512,7 +497,6 @@ export const Tasks = () => {
     return () => clearTimeout(timeoutId);
   }, [searchInput, dispatch, user?.id]);
 
-  // Handle Escape key to close modals
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -527,27 +511,22 @@ export const Tasks = () => {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [deleteConfirm.show, showForm]);
 
-  // Handle typing detection with debouncing
   useEffect(() => {
     if (editingTask && formData.description && user?.id && user?.name) {
-      // Clear existing typing timeout
       if (typingTimeout) {
         clearTimeout(typingTimeout);
       }
 
-      // Send typing indicator immediately on first keystroke
       if (!isTyping) {
         setIsTyping(true);
         realtimeService.sendTypingIndicator(editingTask, user.id, user.name);
       }
 
-      // Debounce: Send typing indicator every 500ms while typing
       const timeout = setTimeout(() => {
         realtimeService.sendTypingIndicator(editingTask, user.id, user.name);
       }, 500);
       setTypingTimeout(timeout);
 
-      // Stop typing indicator after 2 seconds of inactivity
       const stopTypingTimeout = setTimeout(() => {
         setIsTyping(false);
         realtimeService.sendStopTypingIndicator(editingTask, user.id);
@@ -569,24 +548,20 @@ export const Tasks = () => {
     }
   }, [formData.description, editingTask, user?.id, user?.name, typingTimeout, isTyping]);
 
-  // Set up typing indicator listeners for other users
   useEffect(() => {
     if (!editingTask) return;
 
     const handleUserTyping = (data: { taskId: string; userId: string; userName: string }) => {
-      if (data.userId === user?.id) return; // Don't show own typing indicator
-      if (data.taskId !== editingTask) return; // Only show for current editing task
+      if (data.userId === user?.id) return;
+      if (data.taskId !== editingTask) return;
       
       setTypingUsers(prev => {
         const newMap = new Map(prev);
-        
-        // Clear existing timeout for this user
         const existing = newMap.get(data.userId);
         if (existing?.timeoutId) {
           clearTimeout(existing.timeoutId);
         }
         
-        // Set new timeout to remove typing indicator after 2 seconds
         const timeoutId = setTimeout(() => {
           setTypingUsers(prevMap => {
             const updatedMap = new Map(prevMap);
@@ -616,10 +591,9 @@ export const Tasks = () => {
     };
 
     const handleDescriptionUpdate = (data: { taskId: string; content: string; userId: string }) => {
-      if (data.userId === user?.id) return; // Don't update if it's our own change
-      if (data.taskId !== editingTask) return; // Only update if editing this task
+      if (data.userId === user?.id) return;
+      if (data.taskId !== editingTask) return;
       
-      // Update description in form
       setFormData(prev => ({
         ...prev,
         description: data.content,
@@ -660,24 +634,20 @@ export const Tasks = () => {
           setShowDatePicker(false);
           setShowTimePicker(false);
           
-          // Submit the form
           form.requestSubmit();
         }
       }
     }
   };
 
-  // Global keyboard listener for form submission
   useEffect(() => {
     if (!showForm) return;
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Handle Ctrl+Enter (Windows/Linux) or Cmd+Enter (Mac)
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        // Check if we're not in a picker or modal
         const target = e.target as HTMLElement;
         if (target.closest('[role="dialog"]') || target.closest('.date-picker-dropdown') || target.closest('.time-picker-dropdown')) {
-          return; // Don't submit if inside a picker
+          return;
         }
 
         e.preventDefault();
@@ -687,11 +657,9 @@ export const Tasks = () => {
         if (form) {
           const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
           if (submitButton && !submitButton.disabled) {
-            // Close any open pickers first
             setShowDatePicker(false);
             setShowTimePicker(false);
             
-            // Submit the form
             form.requestSubmit();
           }
         }
@@ -736,7 +704,6 @@ export const Tasks = () => {
           return;
         }
 
-        // Combine date and time into ISO string
         let dueDateISO: string | null = null;
         if (formData.dueDate && formData.dueTime) {
           const dateTime = new Date(`${formData.dueDate}T${formData.dueTime}`);
@@ -746,12 +713,10 @@ export const Tasks = () => {
           dueDateISO = dateTime.toISOString();
         }
 
-        // Parse tags
         const tagsArray = formData.tags
           ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
           : [];
 
-        // Update task via Redux
         await dispatch(
           updateTask({
             id: editingTask,
@@ -771,14 +736,10 @@ export const Tasks = () => {
         setShowForm(false);
       } catch (error: any) {
         showToast(error.message || 'Failed to update task', 'error');
-        // Form stays open on error so user can retry
       }
       return;
     }
 
-    // CREATE TASK FLOW (existing code)
-
-    // Combine date and time into ISO string
     let dueDateISO: string | null = null;
     let dueDateUnix: number | null = null;
     if (formData.dueDate && formData.dueTime) {
@@ -786,25 +747,20 @@ export const Tasks = () => {
       dueDateISO = dateTime.toISOString();
       dueDateUnix = Math.floor(dateTime.getTime() / 1000);
     } else if (formData.dueDate) {
-      // If only date is provided, set time to end of day
       const dateTime = new Date(`${formData.dueDate}T23:59:59`);
       dueDateISO = dateTime.toISOString();
       dueDateUnix = Math.floor(dateTime.getTime() / 1000);
     }
 
-    // Parse tags
     const tagsArray = formData.tags
       ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
       : [];
 
-    // Create new task
       try {
         let transactionHash: string | null = null;
         let blockchainTaskId: string | null = null;
 
-        // If Web3 reward is enabled, create task on blockchain first
         if (formData.hasWeb3Reward && formData.rewardAmount) {
-          // Check if contract address is configured
           const contractAddress = import.meta.env.VITE_TASK_MANAGER_CONTRACT_ADDRESS;
           if (!contractAddress) {
             showToast('Web3 rewards are not configured. Task will be created without Web3 reward.', 'warning');
@@ -819,15 +775,12 @@ export const Tasks = () => {
 
             setIsCreatingBlockchain(true);
             try {
-              // Connect wallet if not connected
               if (!await contractService.isConnected()) {
                 await contractService.connect();
               }
 
-            // Get assignee address - empty means open task (anyone can claim)
             let assigneeAddress = formData.assignee?.trim() || '';
             
-            // If assignee is provided, validate it's a valid address
             if (assigneeAddress) {
               // Validate assignee address format (case-insensitive)
               if (!/^0x[a-fA-F0-9]{40}$/i.test(assigneeAddress)) {

@@ -1,4 +1,3 @@
-// src/store/slices/commentSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { API_ENDPOINTS } from '../../config/api';
 
@@ -14,11 +13,11 @@ export interface Comment {
     name: string;
     email?: string;
   };
-  userName?: string; // For WebSocket updates
+  userName?: string;
 }
 
 interface CommentState {
-  comments: Record<string, Comment[]>; // taskId -> comments[]
+  comments: Record<string, Comment[]>;
   isLoading: boolean;
   error: string | null;
 }
@@ -29,7 +28,6 @@ const initialState: CommentState = {
   error: null,
 };
 
-// Fetch comments for a task
 export const fetchComments = createAsyncThunk(
   'comments/fetchComments',
   async (taskId: string, { rejectWithValue }) => {
@@ -49,7 +47,6 @@ export const fetchComments = createAsyncThunk(
   }
 );
 
-// Add a comment
 export const addComment = createAsyncThunk(
   'comments/addComment',
   async (commentData: { taskId: string; content: string; userId: string }, { rejectWithValue }) => {
@@ -83,13 +80,11 @@ const commentSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    // Synchronous action for WebSocket updates
     addCommentFromSocket: (state, action: { payload: { taskId: string; comment: Comment } }) => {
       const { taskId, comment } = action.payload;
       if (!state.comments[taskId]) {
         state.comments[taskId] = [];
       }
-      // Check if comment already exists (avoid duplicates)
       const exists = state.comments[taskId].some(c => c.id === comment.id);
       if (!exists) {
         state.comments[taskId].push(comment);
@@ -98,7 +93,6 @@ const commentSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch comments
       .addCase(fetchComments.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -112,7 +106,6 @@ const commentSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      // Add comment
       .addCase(addComment.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -123,7 +116,6 @@ const commentSlice = createSlice({
         if (!state.comments[taskId]) {
           state.comments[taskId] = [];
         }
-        // Check if comment already exists (avoid duplicates from WebSocket)
         const exists = state.comments[taskId].some(c => c.id === comment.id);
         if (!exists) {
           state.comments[taskId].push(comment);

@@ -1,8 +1,6 @@
-// src/store/slices/taskSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { API_ENDPOINTS } from '../../config/api';
 
-// Helper function to safely format dates
 const formatDate = (dateString: string | Date | null | undefined): string => {
   if (!dateString) return 'Invalid Date';
   try {
@@ -26,11 +24,10 @@ export interface Task {
   createdAt: string;
   userId: string;
   dueDate?: string | null;
-  priority?: string | null; // Low, Medium, High
-  assignee?: string | null; // User ID or wallet address
-  tags?: string[]; // Array of tags
-  attachments?: string[]; // Array of attachment URLs
-  // Web3 fields
+  priority?: string | null;
+  assignee?: string | null;
+  tags?: string[];
+  attachments?: string[];
   hasWeb3Reward?: boolean;
   blockchainTaskId?: string | null;
   rewardAmount?: string | null;
@@ -59,7 +56,6 @@ const initialState: TaskState = {
   searchError: null,
 };
 
-// Async thunks for API calls
 export const fetchTasks = createAsyncThunk(
   'tasks/fetchTasks',
   async (userId: string, { rejectWithValue }) => {
@@ -72,7 +68,6 @@ export const fetchTasks = createAsyncThunk(
       }
 
       const tasks = await response.json();
-      // Format createdAt and dueDate dates to strings
       return tasks.map((task: any) => ({
         ...task,
         createdAt: formatDate(task.createdAt),
@@ -193,9 +188,7 @@ export const searchTasks = createAsyncThunk(
   'tasks/searchTasks',
   async (searchData: { query: string; userId: string }, { rejectWithValue }) => {
     try {
-      // CHECK: Query length < 2 characters → Show recent tasks
       if (searchData.query.length < 2) {
-        // Return empty results for short queries
         return [];
       }
 
@@ -269,10 +262,8 @@ const taskSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    // Synchronous actions for WebSocket updates
     addTaskFromSocket: (state, action: { payload: Task }) => {
       const task = action.payload;
-      // Check if task already exists (avoid duplicates)
       const existingIndex = state.tasks.findIndex(t => t.id === task.id);
       if (existingIndex === -1) {
         state.tasks.unshift({
@@ -300,7 +291,6 @@ const taskSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch tasks
       .addCase(fetchTasks.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -314,11 +304,9 @@ const taskSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      // Create task
       .addCase(createTask.pending, (state, action) => {
         state.isLoading = true;
         state.error = null;
-        // Optimistic update - add temporary task
         if (action.meta.arg) {
           const optimisticTask: Task = {
             id: `temp-${Date.now()}`,
@@ -339,7 +327,6 @@ const taskSlice = createSlice({
       })
       .addCase(createTask.fulfilled, (state, action) => {
         state.isLoading = false;
-        // Remove optimistic task and add real task
         state.tasks = state.tasks.filter(task => !task.id.startsWith('temp-'));
         state.tasks.unshift({
           ...action.payload,
@@ -350,20 +337,16 @@ const taskSlice = createSlice({
       })
       .addCase(createTask.rejected, (state, action) => {
         state.isLoading = false;
-        // Remove optimistic task on error
         state.tasks = state.tasks.filter(task => !task.id.startsWith('temp-'));
         state.error = action.payload as string;
       })
-      // Update task
       .addCase(updateTask.pending, (state, action) => {
         state.isLoading = true;
         state.error = null;
-        // Optimistic update - update task in local state immediately
         if (action.meta.arg) {
           const index = state.tasks.findIndex(task => task.id === action.meta.arg.id);
           if (index !== -1) {
             const existingTask = state.tasks[index];
-            // Store original task for rollback if needed
             state.tasks[index] = {
               ...existingTask,
               ...(action.meta.arg.title !== undefined && { title: action.meta.arg.title }),
@@ -380,7 +363,6 @@ const taskSlice = createSlice({
       })
       .addCase(updateTask.fulfilled, (state, action) => {
         state.isLoading = false;
-        // Replace optimistic update with real task from server
         const index = state.tasks.findIndex(task => task.id === action.payload.id);
         if (index !== -1) {
           state.tasks[index] = {
@@ -393,36 +375,27 @@ const taskSlice = createSlice({
       })
       .addCase(updateTask.rejected, (state, action) => {
         state.isLoading = false;
-        // Revert optimistic update - refetch tasks to get correct state
-        // In a production app, you'd store the original task and revert it here
         state.error = action.payload as string;
       })
-      // Delete task
       .addCase(deleteTask.pending, (state, action) => {
         state.isLoading = true;
         state.error = null;
-        // Optimistic Update: Remove task from list
         if (action.meta.arg) {
           state.tasks = state.tasks.filter(task => task.id !== action.meta.arg.taskId);
         }
       })
       .addCase(deleteTask.fulfilled, (state, action) => {
         state.isLoading = false;
-        // Update Redux: deleteTask(taskId) - task already removed optimistically
         state.tasks = state.tasks.filter(task => task.id !== action.payload.taskId);
         state.error = null;
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.isLoading = false;
-        // Revert optimistic update - refetch tasks to restore task in UI
-        // In production, you'd store the deleted task and restore it here
         state.error = action.payload as string;
       })
-      // Toggle task complete
       .addCase(toggleTaskComplete.pending, (state, action) => {
         state.isLoading = true;
         state.error = null;
-        // Optimistic Update: Mark task as completed
         if (action.meta.arg) {
           const index = state.tasks.findIndex(task => task.id === action.meta.arg.taskId);
           if (index !== -1) {
@@ -436,7 +409,6 @@ const taskSlice = createSlice({
       })
       .addCase(toggleTaskComplete.fulfilled, (state, action) => {
         state.isLoading = false;
-        // Update Redux: updateTask(completedTask)
         const index = state.tasks.findIndex(task => task.id === action.payload.task.id);
         if (index !== -1) {
           state.tasks[index] = {
@@ -449,7 +421,6 @@ const taskSlice = createSlice({
       })
       .addCase(toggleTaskComplete.rejected, (state, action) => {
         state.isLoading = false;
-        // Revert optimistic update
         if (action.meta.arg) {
           const index = state.tasks.findIndex(task => task.id === action.meta.arg.taskId);
           if (index !== -1) {
@@ -462,7 +433,6 @@ const taskSlice = createSlice({
         }
         state.error = action.payload as string;
       })
-      // Search tasks
       .addCase(searchTasks.pending, (state, action) => {
         state.isSearching = true;
         state.searchError = null;
@@ -476,7 +446,6 @@ const taskSlice = createSlice({
       .addCase(searchTasks.rejected, (state, action) => {
         state.isSearching = false;
         state.searchError = action.payload as string;
-        // Keep previous search results if available
       });
   },
 });

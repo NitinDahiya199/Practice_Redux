@@ -1,4 +1,3 @@
-// src/services/realtimeService.ts
 import { io, Socket } from 'socket.io-client';
 import { store } from '../store';
 import { 
@@ -15,7 +14,7 @@ class RealtimeService {
 
   connect() {
     if (this.socket?.connected) {
-      return; // Already connected
+      return;
     }
 
     // Use API_BASE_URL from config (already includes VITE_API_URL or fallback)
@@ -43,7 +42,6 @@ class RealtimeService {
       this.isConnected = false;
     });
 
-    // Listen for task:updated event
     this.socket.on('task:updated', (data: { task: any; updatedBy?: string }) => {
       console.log('Task updated event received:', data);
       const task = {
@@ -51,12 +49,9 @@ class RealtimeService {
         createdAt: data.task.createdAt ? new Date(data.task.createdAt).toISOString() : null,
         dueDate: data.task.dueDate ? new Date(data.task.dueDate).toISOString() : null,
       };
-      
-      // Dispatch Redux action: updateTaskFromSocket(task)
       store.dispatch(updateTaskFromSocket(task));
     });
 
-    // Listen for task:created event
     this.socket.on('task:created', (data: { task: any; createdBy?: string }) => {
       console.log('Task created event received:', data);
       const task = {
@@ -64,12 +59,9 @@ class RealtimeService {
         createdAt: data.task.createdAt ? new Date(data.task.createdAt).toISOString() : null,
         dueDate: data.task.dueDate ? new Date(data.task.dueDate).toISOString() : null,
       };
-      
-      // Dispatch Redux action: addTaskFromSocket(task)
       store.dispatch(addTaskFromSocket(task));
     });
 
-    // Listen for task:completed event
     this.socket.on('task:completed', (data: { task: any; completedBy?: string }) => {
       console.log('Task completed event received:', data);
       const task = {
@@ -77,12 +69,9 @@ class RealtimeService {
         createdAt: data.task.createdAt ? new Date(data.task.createdAt).toISOString() : null,
         dueDate: data.task.dueDate ? new Date(data.task.dueDate).toISOString() : null,
       };
-      
-      // Dispatch Redux action: updateTaskFromSocket(task)
       store.dispatch(updateTaskFromSocket(task));
     });
 
-    // Listen for task:claimed event
     this.socket.on('task:claimed', (data: { task: any; claimedBy?: string }) => {
       console.log('Task claimed event received:', data);
       const task = {
@@ -90,20 +79,14 @@ class RealtimeService {
         createdAt: data.task.createdAt ? new Date(data.task.createdAt).toISOString() : null,
         dueDate: data.task.dueDate ? new Date(data.task.dueDate).toISOString() : null,
       };
-      
-      // Dispatch Redux action: updateTaskFromSocket(task)
       store.dispatch(updateTaskFromSocket(task));
     });
 
-    // Listen for task:deleted event
     this.socket.on('task:deleted', (data: { taskId: string; deletedBy?: string }) => {
       console.log('Task deleted event received:', data);
-      
-      // Dispatch Redux action: deleteTaskFromSocket(taskId)
       store.dispatch(deleteTaskFromSocket(data.taskId));
     });
 
-    // Listen for comment:added event
     this.socket.on('comment:added', (data: { comment: any }) => {
       console.log('Comment added event received:', data);
       const comment = {
@@ -112,18 +95,14 @@ class RealtimeService {
         updatedAt: data.comment.updatedAt ? new Date(data.comment.updatedAt).toISOString() : undefined,
       };
       
-      // Get current user from Redux store to avoid duplicate for own comments
       const state = store.getState();
       const currentUserId = state.auth.user?.id;
       
-      // Skip WebSocket update if this is the current user's own comment
-      // (it's already added via the API response in addComment.fulfilled)
       if (currentUserId && comment.userId === currentUserId) {
         console.log('Skipping WebSocket update for own comment');
         return;
       }
       
-      // Dispatch Redux action: addCommentFromSocket({ taskId, comment })
       store.dispatch(addCommentFromSocket({ 
         taskId: comment.taskId, 
         comment 
@@ -157,7 +136,6 @@ class RealtimeService {
     return this.isConnected;
   }
 
-  // Typing indicator methods
   sendTypingIndicator(taskId: string, userId: string, userName: string) {
     if (this.socket && this.isConnected) {
       this.socket.emit('typing', { taskId, userId, userName });
@@ -170,7 +148,6 @@ class RealtimeService {
     }
   }
 
-  // Listen for typing indicators from other users
   onUserTyping(callback: (data: { taskId: string; userId: string; userName: string }) => void) {
     if (this.socket) {
       this.socket.on('user:typing', callback);
@@ -183,14 +160,12 @@ class RealtimeService {
     }
   }
 
-  // Task description update (collaborative editing)
   sendDescriptionUpdate(taskId: string, content: string, userId: string) {
     if (this.socket && this.isConnected) {
       this.socket.emit('task:description:update', { taskId, content, userId });
     }
   }
 
-  // Listen for description updates from other users
   onDescriptionUpdate(callback: (data: { taskId: string; content: string; userId: string }) => void) {
     if (this.socket) {
       this.socket.on('task:description:updated', callback);

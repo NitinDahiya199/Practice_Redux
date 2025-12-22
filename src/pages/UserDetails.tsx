@@ -1,4 +1,3 @@
-// src/pages/UserDetails.tsx
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Card, CardHeader, CardTitle, CardBody, PageContainer, Button, Input, TextArea } from '../components/common';

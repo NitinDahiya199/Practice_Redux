@@ -1,4 +1,3 @@
-// src/services/web3Auth.ts
 import { connectWallet, signMessage, WalletType } from '../utils/wallet';
 import { API_BASE_URL } from '../config/api';
 
