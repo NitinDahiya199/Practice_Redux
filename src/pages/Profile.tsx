@@ -21,17 +21,59 @@ const ProfileHeader = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.xl};
 `;
 
-const Avatar = styled.div`
+const Avatar = styled.div<{ $hasImage?: boolean }>`
   width: 80px;
   height: 80px;
   border-radius: ${({ theme }) => theme.borderRadius.full};
-  background: linear-gradient(135deg, ${({ theme }) => theme.colors.primary} 0%, ${({ theme }) => theme.colors.secondary} 100%);
+  background: ${({ $hasImage, theme }) => $hasImage ? 'transparent' : `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`};
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: ${({ theme }) => theme.fontSize.xxxl};
   font-weight: ${({ theme }) => theme.fontWeight.bold};
   color: white;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: ${({ theme }) => theme.shadows.lg};
+  }
+`;
+
+const AvatarImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+`;
+
+const AvatarOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  color: white;
+  font-size: ${({ theme }) => theme.fontSize.xs};
+  font-weight: ${({ theme }) => theme.fontWeight.medium};
+
+  ${Avatar}:hover & {
+    opacity: 1;
+  }
+`;
+
+const AvatarInput = styled.input`
+  display: none;
 `;
 
 const UserInfo = styled.div`
@@ -68,7 +110,7 @@ const QRCodeImage = styled.img`
 `;
 
 const SecretKey = styled.div`
-  background: ${({ theme }) => theme.colors.backgroundSecondary || '#f5f5f5'};
+  background: #f5f5f5;
   padding: ${({ theme }) => theme.spacing.md};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-family: monospace;
@@ -83,7 +125,7 @@ const StatusBadge = styled.span<{ enabled: boolean }>`
   border-radius: ${({ theme }) => theme.borderRadius.full};
   font-size: ${({ theme }) => theme.fontSize.sm};
   font-weight: ${({ theme }) => theme.fontWeight.semibold};
-  background: ${({ enabled, theme }) => enabled ? '#10B981' : '#EF4444'};
+  background: ${({ enabled }) => enabled ? '#10B981' : '#EF4444'};
   color: white;
 `;
 
@@ -95,6 +137,7 @@ export const Profile = () => {
     email: '',
     bio: '',
   });
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   
   const { user, token } = useAppSelector((state) => state.auth);
   const { profile, isLoading, error } = useAppSelector((state) => state.user);
@@ -124,6 +167,7 @@ export const Profile = () => {
         email: profile.email || '',
         bio: profile.bio || '',
       });
+      setAvatarPreview(profile.avatarUrl || null);
     } else if (user) {
       // Fallback to auth user data if profile doesn't exist
       setFormData({
@@ -131,6 +175,7 @@ export const Profile = () => {
         email: user.email || '',
         bio: '',
       });
+      setAvatarPreview(null);
     }
   }, [profile, user]);
 
@@ -247,6 +292,40 @@ export const Profile = () => {
     });
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select an image file', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image size must be less than 5MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setAvatarPreview(result);
+      
+      if (!user?.id) return;
+      
+      dispatch(updateUserProfile({
+        userId: user.id,
+        avatarUrl: result,
+      })).unwrap().then(() => {
+        showToast('Profile picture updated successfully!', 'success');
+      }).catch((error: any) => {
+        showToast(error || 'Failed to update profile picture', 'error');
+        setAvatarPreview(profile?.avatarUrl || null);
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
@@ -275,12 +354,14 @@ export const Profile = () => {
         email: profile.email || '',
         bio: profile.bio || '',
       });
+      setAvatarPreview(profile.avatarUrl || null);
     } else if (user) {
       setFormData({
         name: user.name || '',
         email: user.email || '',
         bio: '',
       });
+      setAvatarPreview(null);
     }
   };
 
@@ -296,6 +377,7 @@ export const Profile = () => {
   // Get display values (use formData if editing, otherwise use profile/user)
   const displayName = isEditing ? formData.name : (profile?.name || user?.name || '');
   const displayEmail = isEditing ? formData.email : (profile?.email || user?.email || '');
+  const currentAvatarUrl = avatarPreview || profile?.avatarUrl || '';
 
   if (isLoading && !profile) {
     return (
@@ -331,7 +413,25 @@ export const Profile = () => {
             </div>
           )}
           <ProfileHeader>
-            <Avatar>{getInitials(displayName || 'User')}</Avatar>
+            <Avatar 
+              $hasImage={!!currentAvatarUrl}
+              onClick={() => document.getElementById('profile-avatar-input')?.click()}
+            >
+              {currentAvatarUrl ? (
+                <>
+                  <AvatarImage src={currentAvatarUrl} alt={displayName || 'User'} />
+                  <AvatarOverlay>Change Photo</AvatarOverlay>
+                </>
+              ) : (
+                getInitials(displayName || 'User')
+              )}
+            </Avatar>
+            <AvatarInput
+              id="profile-avatar-input"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+            />
             <UserInfo>
               <UserName>{displayName || 'User'}</UserName>
               <UserEmail>{displayEmail || 'No email'}</UserEmail>

@@ -11,6 +11,7 @@ export interface UserProfile {
   website?: string;
   role?: string;
   company?: string;
+  avatarUrl?: string;
   joinDate: string;
   lastActive: string;
 }
@@ -70,6 +71,7 @@ export const updateUserProfile = createAsyncThunk(
     website?: string;
     role?: string;
     company?: string;
+    avatarUrl?: string;
   }, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem('token');
@@ -88,6 +90,7 @@ export const updateUserProfile = createAsyncThunk(
           website: profileData.website,
           role: profileData.role,
           company: profileData.company,
+          avatarUrl: profileData.avatarUrl,
         }),
       });
 

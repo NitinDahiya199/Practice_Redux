@@ -1,15 +1,14 @@
-// src/components/common/ProfileIcon.tsx
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 
-const ProfileIconLink = styled(Link)`
+const ProfileIconLink = styled(Link)<{ $hasImage?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 42px;
   height: 42px;
   border-radius: ${({ theme }) => theme.borderRadius.full};
-  background: ${({ theme }) => theme.gradients.primary};
+  background: ${({ $hasImage, theme }) => $hasImage ? 'transparent' : theme.gradients.primary};
   color: white;
   text-decoration: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -56,6 +55,22 @@ const ProfileIconLink = styled(Link)`
   }
 `;
 
+const AvatarImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  position: relative;
+  z-index: 1;
+`;
+
+const AvatarInitials = styled.div`
+  font-size: 16px;
+  font-weight: ${({ theme }) => theme.fontWeight.bold};
+  position: relative;
+  z-index: 1;
+`;
+
 const ProfileIconSvg = () => (
   <svg
     viewBox="0 0 24 24"
@@ -70,15 +85,33 @@ const ProfileIconSvg = () => (
   </svg>
 );
 
+const getInitials = (name: string): string => {
+  if (!name) return 'U';
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
 interface ProfileIconProps {
   to: string;
   title?: string;
+  avatarUrl?: string;
+  userName?: string;
 }
 
-export const ProfileIcon = ({ to, title = 'View Profile' }: ProfileIconProps) => {
+export const ProfileIcon = ({ to, title = 'View Profile', avatarUrl, userName }: ProfileIconProps) => {
   return (
-    <ProfileIconLink to={to} title={title}>
-      <ProfileIconSvg />
+    <ProfileIconLink to={to} title={title} $hasImage={!!avatarUrl}>
+      {avatarUrl ? (
+        <AvatarImage src={avatarUrl} alt={userName || 'Profile'} />
+      ) : userName ? (
+        <AvatarInitials>{getInitials(userName)}</AvatarInitials>
+      ) : (
+        <ProfileIconSvg />
+      )}
     </ProfileIconLink>
   );
 };

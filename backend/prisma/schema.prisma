@@ -18,6 +18,7 @@ model User {
   website      String?
   role         String?
   company      String?
+  avatarUrl    String?
   mfaEnabled   Boolean  @default(false)
   mfaSecret    String?
   mfaAttempts  Int      @default(0)

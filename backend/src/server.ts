@@ -30,7 +30,8 @@ const io = new Server(httpServer, {
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // WebSocket connection handling
 io.on('connection', (socket) => {
@@ -1377,6 +1378,7 @@ app.get('/api/users/:userId/profile', async (req, res) => {
         website: true,
         role: true,
         company: true,
+        avatarUrl: true,
         createdAt: true,
       },
     });
@@ -1395,6 +1397,7 @@ app.get('/api/users/:userId/profile', async (req, res) => {
       website: user.website || '',
       role: user.role || '',
       company: user.company || '',
+      avatarUrl: user.avatarUrl || '',
       joinDate: user.createdAt.toISOString(),
       lastActive: user.createdAt.toISOString(),
     });
@@ -1408,7 +1411,7 @@ app.get('/api/users/:userId/profile', async (req, res) => {
 app.put('/api/users/:userId/profile', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { name, email, bio, phone, location, website, role, company } = req.body;
+    const { name, email, bio, phone, location, website, role, company, avatarUrl } = req.body;
 
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
@@ -1429,6 +1432,7 @@ app.put('/api/users/:userId/profile', async (req, res) => {
         ...(website !== undefined && { website }),
         ...(role !== undefined && { role }),
         ...(company !== undefined && { company }),
+        ...(avatarUrl !== undefined && { avatarUrl }),
       },
       select: {
         id: true,
@@ -1440,6 +1444,7 @@ app.put('/api/users/:userId/profile', async (req, res) => {
         website: true,
         role: true,
         company: true,
+        avatarUrl: true,
         createdAt: true,
       },
     });
@@ -1454,19 +1459,28 @@ app.put('/api/users/:userId/profile', async (req, res) => {
       website: updatedUser.website || '',
       role: updatedUser.role || '',
       company: updatedUser.company || '',
+      avatarUrl: updatedUser.avatarUrl || '',
       joinDate: updatedUser.createdAt.toISOString(),
       lastActive: updatedUser.createdAt.toISOString(),
     });
   } catch (error: any) {
     console.error('Update profile error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error.message && error.message.includes('too large')) {
+      return res.status(413).json({ error: 'Image file is too large. Maximum size is 5MB.' });
+    }
+    res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });
 
 // Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  
+  if (err.name === 'PayloadTooLargeError' || err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request payload too large. Maximum size is 10MB. Please use a smaller image.' });
+  }
+  
+  res.status(500).json({ error: err.message || 'Something went wrong!' });
 });
 
 // 404 handler

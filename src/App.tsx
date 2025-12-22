@@ -28,6 +28,7 @@ import { Provider } from 'react-redux';
 import { store } from './store';
 import { useAppSelector, useAppDispatch } from './store/hooks';
 import { logout } from './store/slices/authSlice';
+import { fetchUserProfile } from './store/slices/userSlice';
 import { useToast, ToastProvider } from './components/common/Toast';
 import { realtimeService } from './services/realtimeService';
 import { useEffect } from 'react';
@@ -65,16 +66,26 @@ const LogoutButton = styled(Button)`
 `;
 
 const AppHeader = () => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { profile } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    if (isAuthenticated && user?.id && !profile) {
+      dispatch(fetchUserProfile(user.id));
+    }
+  }, [isAuthenticated, user?.id, profile, dispatch]);
 
   const handleLogout = () => {
     dispatch(logout());
     showToast('Logged out successfully', 'info');
     navigate('/');
   };
+
+  const avatarUrl = profile?.avatarUrl;
+  const userName = profile?.name || user?.name;
 
   return (
     <Header>
@@ -88,7 +99,7 @@ const AppHeader = () => {
                 <NavLink to="/my-tasks">My Tasks</NavLink>
                 <NavLink to="/user-details">User Details</NavLink>
               </Nav>
-              <ProfileIcon to="/profile" title="View Profile" />
+              <ProfileIcon to="/profile" title="View Profile" avatarUrl={avatarUrl} userName={userName} />
               <LogoutButton variant="outline" onClick={handleLogout}>
                 Logout
               </LogoutButton>

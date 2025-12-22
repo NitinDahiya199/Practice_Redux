@@ -19,11 +19,11 @@ const HeaderSection = styled.div`
   padding: ${({ theme }) => theme.spacing.xl} 0;
 `;
 
-const LargeAvatar = styled.div`
+const LargeAvatar = styled.div<{ $hasImage?: boolean }>`
   width: 120px;
   height: 120px;
   border-radius: ${({ theme }) => theme.borderRadius.full};
-  background: linear-gradient(135deg, ${({ theme }) => theme.colors.primary} 0%, ${({ theme }) => theme.colors.secondary} 100%);
+  background: ${({ $hasImage, theme }) => $hasImage ? 'transparent' : `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -32,6 +32,48 @@ const LargeAvatar = styled.div`
   color: white;
   margin-bottom: ${({ theme }) => theme.spacing.lg};
   box-shadow: ${({ theme }) => theme.shadows.lg};
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: ${({ theme }) => theme.shadows.xl};
+  }
+`;
+
+const AvatarImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+`;
+
+const AvatarOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: ${({ theme }) => theme.borderRadius.full};
+  color: white;
+  font-size: ${({ theme }) => theme.fontSize.sm};
+  font-weight: ${({ theme }) => theme.fontWeight.medium};
+
+  ${LargeAvatar}:hover & {
+    opacity: 1;
+  }
+`;
+
+const AvatarInput = styled.input`
+  display: none;
 `;
 
 const UserName = styled.h1`
@@ -149,6 +191,7 @@ export const UserDetails = () => {
     company: '',
     bio: '',
   });
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   // Fetch profile and tasks when component mounts
   useEffect(() => {
@@ -220,6 +263,7 @@ export const UserDetails = () => {
         company: profile.company || '',
         bio: profile.bio || '',
       });
+      setAvatarPreview(profile.avatarUrl || null);
     }
   }, [profile]);
 
@@ -235,6 +279,7 @@ export const UserDetails = () => {
     const company = editingSection === 'account' ? formData.company : (profile?.company || 'N/A');
     const joinDate = profile?.joinDate ? formatDate(profile.joinDate) : 'N/A';
     const lastActive = profile?.lastActive ? formatRelativeTime(profile.lastActive) : 'N/A';
+    const avatarUrl = profile?.avatarUrl || '';
 
     return {
       name,
@@ -247,7 +292,8 @@ export const UserDetails = () => {
       company,
       joinDate,
       lastActive,
-      accountStatus: 'Active', // This could come from profile or auth state
+      avatarUrl,
+      accountStatus: 'Active',
       ...taskStats,
     };
   }, [profile, user, taskStats, editingSection, formData]);
@@ -267,6 +313,40 @@ export const UserDetails = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select an image file', 'error');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image size must be less than 5MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setAvatarPreview(result);
+      
+      if (!user?.id) return;
+      
+      dispatch(updateUserProfile({
+        userId: user.id,
+        avatarUrl: result,
+      })).unwrap().then(() => {
+        showToast('Profile picture updated successfully!', 'success');
+      }).catch((error: any) => {
+        showToast(error || 'Failed to update profile picture', 'error');
+        setAvatarPreview(profile?.avatarUrl || null);
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async (section: 'personal' | 'account' | 'about') => {
@@ -379,10 +459,30 @@ export const UserDetails = () => {
     );
   }
 
+  const currentAvatarUrl = avatarPreview || profile?.avatarUrl || '';
+
   return (
     <UserDetailsContainer>
       <HeaderSection>
-        <LargeAvatar>{getInitials(displayData.name)}</LargeAvatar>
+        <LargeAvatar 
+          $hasImage={!!currentAvatarUrl}
+          onClick={() => document.getElementById('avatar-input')?.click()}
+        >
+          {currentAvatarUrl ? (
+            <>
+              <AvatarImage src={currentAvatarUrl} alt={displayData.name} />
+              <AvatarOverlay>Change Photo</AvatarOverlay>
+            </>
+          ) : (
+            getInitials(displayData.name)
+          )}
+        </LargeAvatar>
+        <AvatarInput
+          id="avatar-input"
+          type="file"
+          accept="image/*"
+          onChange={handleAvatarChange}
+        />
         <UserName>{displayData.name}</UserName>
         <UserEmail>{displayData.email}</UserEmail>
         {displayData.bio && <UserBio>{displayData.bio}</UserBio>}
