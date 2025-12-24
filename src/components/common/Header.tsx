@@ -31,7 +31,7 @@ export const HeaderContent = styled.div`
 `;
 
 export const Logo = styled(Link)`
-  font-size: ${({ theme }) => theme.fontSize.xxl};
+  font-size: ${({ theme }) => theme.fontSize.lg};
   font-weight: ${({ theme }) => theme.fontWeight.bold};
   background: ${({ theme }) => theme.gradients.primary};
   -webkit-background-clip: text;
@@ -40,6 +40,11 @@ export const Logo = styled(Link)`
   text-decoration: none;
   transition: all 0.3s ease;
   filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.5));
+  white-space: nowrap;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSize.xxl};
+  }
 
   &:hover {
     filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.8));
@@ -48,19 +53,31 @@ export const Logo = styled(Link)`
 `;
 
 export const Nav = styled.nav`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.sm};
-  align-items: center;
+  display: none;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    display: flex;
+    flex-direction: row;
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
 `;
 
 export const NavLink = styled(Link)`
   color: ${({ theme }) => theme.colors.textLight};
   text-decoration: none;
   font-weight: ${({ theme }) => theme.fontWeight.medium};
-  padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  display: block;
+  text-align: center;
+  font-size: ${({ theme }) => theme.fontSize.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    text-align: left;
+    padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.md};
+  }
 
   &::before {
     content: '';
@@ -72,6 +89,10 @@ export const NavLink = styled(Link)`
     background: ${({ theme }) => theme.gradients.primary};
     transition: all 0.3s ease;
     transform: translateX(-50%);
+
+    @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+      bottom: 0;
+    }
   }
 
   &:hover {
@@ -87,8 +108,16 @@ export const NavLink = styled(Link)`
 export const ProfileIconContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.md};
+  gap: ${({ theme }) => theme.spacing.sm};
+  flex-wrap: wrap;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    gap: ${({ theme }) => theme.spacing.md};
+    flex-wrap: nowrap;
+  }
 `;
+
+// Mobile menu button removed - using bottom nav instead
 
 
 

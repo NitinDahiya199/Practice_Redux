@@ -8,6 +8,11 @@ import { API_ENDPOINTS } from '../config/api';
 
 const ProfileContainer = styled(PageContainer)`
   max-width: 600px;
+  padding: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: ${({ theme }) => theme.spacing.xl};
+  }
 `;
 
 const ProfileCard = styled(Card)`
@@ -16,9 +21,17 @@ const ProfileCard = styled(Card)`
 
 const ProfileHeader = styled.div`
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.lg};
+  text-align: center;
+  gap: ${({ theme }) => theme.spacing.md};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    flex-direction: row;
+    text-align: left;
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
 `;
 
 const Avatar = styled.div<{ $hasImage?: boolean }>`
@@ -99,8 +112,14 @@ const Form = styled.form`
 
 const ButtonGroup = styled.div`
   display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.sm};
   margin-top: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    flex-direction: row;
+    gap: ${({ theme }) => theme.spacing.md};
+  }
 `;
 
 const QRCodeImage = styled.img`
@@ -127,6 +146,43 @@ const StatusBadge = styled.span<{ enabled: boolean }>`
   font-weight: ${({ theme }) => theme.fontWeight.semibold};
   background: ${({ enabled }) => enabled ? '#10B981' : '#EF4444'};
   color: white;
+`;
+
+const LoadingContainer = styled.div`
+  text-align: center;
+  padding: ${({ theme }) => theme.spacing.xl};
+`;
+
+const ErrorContainer = styled.div`
+  padding: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  background-color: ${({ theme }) => theme.colors.danger}20;
+  border: 1px solid ${({ theme }) => theme.colors.danger};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  color: ${({ theme }) => theme.colors.danger};
+`;
+
+const MFASection = styled.div`
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+`;
+
+const MFAText = styled.p`
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  font-size: ${({ theme }) => theme.fontSize.sm};
+  color: ${({ theme }) => theme.colors.textSecondary};
+`;
+
+const MFATitle = styled.p`
+  margin-top: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
+  font-size: ${({ theme }) => theme.fontSize.sm};
+  font-weight: ${({ theme }) => theme.fontWeight.semibold};
+`;
+
+const MFADescription = styled.p`
+  margin-top: ${({ theme }) => theme.spacing.md};
+  font-size: ${({ theme }) => theme.fontSize.sm};
+  color: ${({ theme }) => theme.colors.textSecondary};
 `;
 
 export const Profile = () => {
@@ -384,9 +440,9 @@ export const Profile = () => {
       <ProfileContainer>
         <ProfileCard>
           <CardBody>
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <LoadingContainer>
               Loading profile...
-            </div>
+            </LoadingContainer>
           </CardBody>
         </ProfileCard>
       </ProfileContainer>
@@ -401,16 +457,9 @@ export const Profile = () => {
         </CardHeader>
         <CardBody>
           {error && (
-            <div style={{ 
-              padding: '1rem', 
-              marginBottom: '1rem', 
-              backgroundColor: '#fee', 
-              border: '1px solid #fcc', 
-              borderRadius: '4px',
-              color: '#c33'
-            }}>
+            <ErrorContainer>
               {error}
-            </div>
+            </ErrorContainer>
           )}
           <ProfileHeader>
             <Avatar 
@@ -499,21 +548,21 @@ export const Profile = () => {
           <CardTitle>Two-Factor Authentication</CardTitle>
         </CardHeader>
         <CardBody>
-          <div style={{ marginBottom: '1rem' }}>
+          <MFASection>
             <StatusBadge enabled={mfaEnabled}>
               {mfaEnabled ? 'Enabled' : 'Disabled'}
             </StatusBadge>
-          </div>
+          </MFASection>
 
           {mfaSetupMode && mfaQRCode && mfaSecret ? (
             <div>
-              <p style={{ marginBottom: '1rem', fontSize: '0.875rem', color: '#666' }}>
+              <MFAText>
                 Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
-              </p>
+              </MFAText>
               <QRCodeImage src={mfaQRCode} alt="MFA QR Code" />
-              <p style={{ marginTop: '1rem', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: '600' }}>
+              <MFATitle>
                 Or enter this code manually:
-              </p>
+              </MFATitle>
               <SecretKey>{mfaSecret}</SecretKey>
               
               <MFAVerification
@@ -541,11 +590,11 @@ export const Profile = () => {
                   Enable MFA
                 </Button>
               )}
-              <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#666' }}>
+              <MFADescription>
                 {mfaEnabled 
                   ? 'Your account is protected with two-factor authentication.'
                   : 'Add an extra layer of security to your account by enabling two-factor authentication.'}
-              </p>
+              </MFADescription>
             </div>
           )}
         </CardBody>

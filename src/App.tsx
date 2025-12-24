@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { theme } from './theme/theme';
-import { Header, HeaderContent, Logo, Nav, NavLink, ProfileIconContainer, ProfileIcon, ProtectedRoute, Button } from './components/common';
+import { Header, HeaderContent, Logo, Nav, NavLink, ProfileIconContainer, ProfileIcon, ProtectedRoute, Button, BottomNav, BottomNavTasksIcon, BottomNavMyTasksIcon, BottomNavProfileIcon, BottomNavDetailsIcon, BottomNavHomeIcon, BottomNavLoginIcon, BottomNavSignUpIcon } from './components/common';
 import {
   Landing,
   Login,
@@ -32,6 +32,7 @@ import { fetchUserProfile } from './store/slices/userSlice';
 import { useToast, ToastProvider } from './components/common/Toast';
 import { realtimeService } from './services/realtimeService';
 import { useEffect } from 'react';
+import * as React from 'react';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -57,6 +58,11 @@ const AppContent = styled.div`
   min-height: calc(100vh - 80px);
   position: relative;
   z-index: 1;
+  padding-bottom: 80px; /* Space for bottom nav on mobile */
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding-bottom: 0;
+  }
 `;
 
 const LogoutButton = styled(Button)`
@@ -183,6 +189,35 @@ const AppInitializer = () => {
   return null;
 };
 
+const AppWithBottomNav = () => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+
+  // Bottom navigation links
+  const bottomNavLinks = isAuthenticated
+    ? [
+        { to: '/tasks', label: 'Tasks', icon: <BottomNavTasksIcon size={24} /> },
+        { to: '/my-tasks', label: 'My Tasks', icon: <BottomNavMyTasksIcon size={24} /> },
+        { to: '/profile', label: 'Profile', icon: <BottomNavProfileIcon size={24} /> },
+        { to: '/user-details', label: 'Details', icon: <BottomNavDetailsIcon size={24} /> },
+      ]
+    : [
+        { to: '/', label: 'Home', icon: <BottomNavHomeIcon size={24} /> },
+        { to: '/tasks', label: 'Tasks', icon: <BottomNavTasksIcon size={24} /> },
+        { to: '/login', label: 'Login', icon: <BottomNavLoginIcon size={24} /> },
+        { to: '/signup', label: 'Sign Up', icon: <BottomNavSignUpIcon size={24} /> },
+      ];
+
+  return (
+    <>
+      <AppHeader />
+      <AppContent>
+        <AppRoutes />
+      </AppContent>
+      <BottomNav links={bottomNavLinks} />
+    </>
+  );
+};
+
 function App() {
   return (
     <Provider store={store}>
@@ -191,10 +226,7 @@ function App() {
           <AppInitializer />
           <Router>
             <AppContainer>
-              <AppHeader />
-              <AppContent>
-                <AppRoutes />
-              </AppContent>
+              <AppWithBottomNav />
             </AppContainer>
           </Router>
         </ToastProvider>

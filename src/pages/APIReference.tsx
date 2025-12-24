@@ -95,10 +95,10 @@ const EndpointPath = styled.span`
   font-size: ${({ theme }) => theme.fontSize.md};
 `;
 
-const Text = styled.p`
+const Text = styled.p<{ $noMargin?: boolean }>`
   color: ${({ theme }) => theme.colors.textLight};
   line-height: 1.8;
-  margin-bottom: ${({ theme }) => theme.spacing.md};
+  margin: ${({ $noMargin, theme }) => $noMargin ? `${theme.spacing.sm} 0 0 0` : `0 0 ${theme.spacing.md} 0`};
 `;
 
 export const APIReference = () => {
@@ -131,7 +131,7 @@ export const APIReference = () => {
           <Endpoint>
             <Method method="GET">GET</Method>
             <EndpointPath>/api/health</EndpointPath>
-            <Text style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+            <Text $noMargin>
               Health check endpoint. Returns server status.
             </Text>
           </Endpoint>
@@ -139,7 +139,7 @@ export const APIReference = () => {
           <Endpoint>
             <Method method="POST">POST</Method>
             <EndpointPath>/api/auth/login</EndpointPath>
-            <Text style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+            <Text $noMargin>
               Authenticate user and receive access token.
             </Text>
           </Endpoint>
@@ -147,7 +147,7 @@ export const APIReference = () => {
           <Endpoint>
             <Method method="POST">POST</Method>
             <EndpointPath>/api/auth/signup</EndpointPath>
-            <Text style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+            <Text $noMargin>
               Register a new user account.
             </Text>
           </Endpoint>
@@ -155,7 +155,7 @@ export const APIReference = () => {
           <Endpoint>
             <Method method="GET">GET</Method>
             <EndpointPath>/api/tasks</EndpointPath>
-            <Text style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+            <Text $noMargin>
               Retrieve all tasks for the authenticated user.
             </Text>
           </Endpoint>
@@ -163,7 +163,7 @@ export const APIReference = () => {
           <Endpoint>
             <Method method="POST">POST</Method>
             <EndpointPath>/api/tasks</EndpointPath>
-            <Text style={{ marginTop: '0.5rem', marginBottom: 0 }}>
+            <Text $noMargin>
               Create a new task.
             </Text>
           </Endpoint>

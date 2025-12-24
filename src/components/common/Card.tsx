@@ -8,7 +8,7 @@ export const Card = styled.div`
     ${({ theme }) => theme.colors.surfaceLight} 100%
   );
   border-radius: ${({ theme }) => theme.borderRadius.lg};
-  padding: ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => theme.spacing.md};
   box-shadow: ${({ theme }) => theme.shadows.md};
   border: 1px solid ${({ theme }) => theme.colors.border};
   backdrop-filter: blur(10px);
@@ -17,6 +17,17 @@ export const Card = styled.div`
   overflow: overlay;
   scrollbar-width: thin;
   scrollbar-color: ${({ theme }) => theme.colors.primary} ${({ theme }) => theme.colors.surface}; 
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    padding: ${({ theme }) => theme.spacing.lg};
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: ${({ theme }) => theme.spacing.xl};
+  }
+
   &::-webkit-scrollbar {
     width: 8px;
   }

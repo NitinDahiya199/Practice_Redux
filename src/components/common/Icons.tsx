@@ -499,3 +499,257 @@ export const PartyIcon: React.FC<IconProps> = ({ size = 24, color = '#FF6B6B', c
   </IconWrapper>
 );
 
+// Bottom Nav Icons - Custom Attractive SVGs
+
+// Tasks Icon (Clipboard with list)
+export const BottomNavTasksIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) => (
+  <IconWrapper
+    size={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5V5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5V5Z"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 12L11 14L15 10"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </IconWrapper>
+);
+
+// My Tasks Icon (Checkmark in circle)
+export const BottomNavMyTasksIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) => (
+  <IconWrapper
+    size={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="9"
+      stroke={color}
+      strokeWidth="2"
+      fill={color}
+      opacity="0.1"
+    />
+    <path
+      d="M8 12L11 15L16 9"
+      stroke={color}
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </IconWrapper>
+);
+
+// Profile Icon (User silhouette)
+export const BottomNavProfileIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) => (
+  <IconWrapper
+    size={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle
+      cx="12"
+      cy="8"
+      r="4"
+      stroke={color}
+      strokeWidth="2"
+      fill={color}
+      opacity="0.1"
+    />
+    <path
+      d="M6 21C6 17.134 8.68629 14 12 14C15.3137 14 18 17.134 18 21"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill={color}
+      opacity="0.1"
+    />
+    <circle
+      cx="12"
+      cy="8"
+      r="4"
+      stroke={color}
+      strokeWidth="2"
+    />
+    <path
+      d="M6 21C6 17.134 8.68629 14 12 14C15.3137 14 18 17.134 18 21"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </IconWrapper>
+);
+
+// Details/Settings Icon (Gear)
+export const BottomNavDetailsIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) => (
+  <IconWrapper
+    size={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="3"
+      stroke={color}
+      strokeWidth="2"
+      fill={color}
+      opacity="0.1"
+    />
+    <path
+      d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <circle
+      cx="12"
+      cy="12"
+      r="3"
+      stroke={color}
+      strokeWidth="2"
+    />
+  </IconWrapper>
+);
+
+// Home Icon (House)
+export const BottomNavHomeIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) => (
+  <IconWrapper
+    size={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill={color}
+      opacity="0.1"
+    />
+    <path
+      d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </IconWrapper>
+);
+
+// Login Icon (Key)
+export const BottomNavLoginIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) => (
+  <IconWrapper
+    size={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle
+      cx="8"
+      cy="15"
+      r="4"
+      stroke={color}
+      strokeWidth="2"
+      fill={color}
+      opacity="0.1"
+    />
+    <path
+      d="M15 11L19 7M19 7L22 10M19 7L16 10"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle
+      cx="8"
+      cy="15"
+      r="4"
+      stroke={color}
+      strokeWidth="2"
+    />
+  </IconWrapper>
+);
+
+// Sign Up Icon (User with plus)
+export const BottomNavSignUpIcon: React.FC<IconProps> = ({ size = 24, color = 'currentColor', className }) => (
+  <IconWrapper
+    size={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <circle
+      cx="12"
+      cy="8"
+      r="4"
+      stroke={color}
+      strokeWidth="2"
+      fill={color}
+      opacity="0.1"
+    />
+    <path
+      d="M6 21C6 17.134 8.68629 14 12 14C15.3137 14 18 17.134 18 21"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill={color}
+      opacity="0.1"
+    />
+    <circle
+      cx="12"
+      cy="8"
+      r="4"
+      stroke={color}
+      strokeWidth="2"
+    />
+    <path
+      d="M6 21C6 17.134 8.68629 14 12 14C15.3137 14 18 17.134 18 21"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M20 4V8M18 6H22"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </IconWrapper>
+);
+

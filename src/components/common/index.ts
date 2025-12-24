@@ -7,6 +7,7 @@ export { Card, CardHeader, CardTitle, CardBody } from './Card';
 export { Container, PageContainer } from './Container';
 export { FormGroup, Label, ErrorMessage } from './FormGroup';
 export { Header, HeaderContent, Logo, Nav, NavLink, ProfileIconContainer } from './Header';
+export { BottomNav } from './BottomNav';
 export { ProfileIcon } from './ProfileIcon';
 export { ProtectedRoute } from './ProtectedRoute';
 export {
@@ -42,6 +43,13 @@ export {
   TrophyIcon,
   StarIcon,
   PartyIcon,
+  BottomNavTasksIcon,
+  BottomNavMyTasksIcon,
+  BottomNavProfileIcon,
+  BottomNavDetailsIcon,
+  BottomNavHomeIcon,
+  BottomNavLoginIcon,
+  BottomNavSignUpIcon,
 } from './Icons';
 export { ToastProvider, useToast } from './Toast';
 export { ConnectWallet } from './ConnectWallet';

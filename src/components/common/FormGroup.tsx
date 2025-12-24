@@ -2,9 +2,11 @@
 import styled from 'styled-components';
 
 export const FormGroup = styled.div`
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
-  position: relative;
-  overflow: visible;
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 export const Label = styled.label`

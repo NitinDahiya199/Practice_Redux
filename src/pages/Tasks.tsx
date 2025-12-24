@@ -13,23 +13,39 @@ import { TypingIndicator, CommentSection } from '../components/common';
 
 const TasksContainer = styled(PageContainer)`
   max-width: 900px;
+  padding: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: ${({ theme }) => theme.spacing.xl};
+  }
 `;
 
 const TasksHeader = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+  }
 `;
 
 const PageTitle = styled.h1`
   margin: 0;
-  font-size: ${({ theme }) => theme.fontSize.xxxl};
+  font-size: ${({ theme }) => theme.fontSize.xxl};
   background: ${({ theme }) => theme.gradients.primary};
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-weight: ${({ theme }) => theme.fontWeight.bold};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSize.xxxl};
+  }
 `;
 
 const Form = styled.form`
@@ -54,9 +70,16 @@ const TaskCard = styled(Card)`
 
 const TaskHeader = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.sm};
   margin-bottom: ${({ theme }) => theme.spacing.sm};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0;
+  }
 `;
 
 const TaskTitle = styled.h3`
@@ -68,7 +91,13 @@ const TaskTitle = styled.h3`
 
 const TaskActions = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: ${({ theme }) => theme.spacing.xs};
+  width: 100%;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    width: auto;
+  }
 `;
 
 const TaskDescription = styled.p`
@@ -80,10 +109,16 @@ const TaskDescription = styled.p`
 
 const TaskMeta = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.sm};
   padding-top: ${({ theme }) => theme.spacing.md};
-  // border-top: 1px solid ${({ theme }) => theme.colors.borderLight};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+  }
 `;
 
 const TaskDate = styled.span`
@@ -176,6 +211,36 @@ const DueDateLabel = styled.span`
   margin-right: ${({ theme }) => theme.spacing.sm};
 `;
 
+// Additional styled components for inline styles
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing.md};
+  align-items: center;
+`;
+
+const TypingIndicatorContainer = styled.div`
+  margin-top: ${({ theme }) => theme.spacing.sm};
+`;
+
+const HelperText = styled.span`
+  font-size: ${({ theme }) => theme.fontSize.sm};
+  color: ${({ theme }) => theme.colors.primary};
+  margin-left: ${({ theme }) => theme.spacing.sm};
+`;
+
+const InfoText = styled.div`
+  font-size: ${({ theme }) => theme.fontSize.sm};
+  color: ${({ theme }) => theme.colors.secondary};
+  margin-top: ${({ theme }) => theme.spacing.sm};
+`;
+
+const FormHelperText = styled.p`
+  font-size: ${({ theme }) => theme.fontSize.sm};
+  color: ${({ theme }) => theme.colors.textSecondary};
+  margin-top: ${({ theme }) => theme.spacing.sm};
+  text-align: center;
+`;
+
 // Modal Styles
 const ModalOverlay = styled.div`
   position: fixed;
@@ -201,9 +266,11 @@ const ModalOverlay = styled.div`
   }
 `;
 
-const ModalContent = styled(Card)`
-  max-width: 400px;
-  width: 100%;
+const ModalContent = styled(Card)<{ $maxWidth?: string; $width?: string; $maxHeight?: string }>`
+  max-width: ${({ $maxWidth }) => $maxWidth || '400px'};
+  width: ${({ $width }) => $width || '100%'};
+  max-height: ${({ $maxHeight }) => $maxHeight || 'none'};
+  overflow-y: ${({ $maxHeight }) => $maxHeight ? 'auto' : 'visible'};
   animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   
@@ -351,7 +418,7 @@ const Tag = styled.span`
 const HighlightedText = styled.span`
   background: ${({ theme }) => theme.colors.warning}40;
   color: ${({ theme }) => theme.colors.text};
-  padding: 2px 4px;
+  padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.xs};
   border-radius: 3px;
   font-weight: ${({ theme }) => theme.fontWeight.semibold};
 `;
@@ -1272,7 +1339,7 @@ export const Tasks = () => {
     <TasksContainer>
       <TasksHeader>
         <PageTitle>My Tasks</PageTitle>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <ButtonGroup>
           <Button 
             variant="outline"
             onClick={() => window.location.href = '/tasks'}
@@ -1285,7 +1352,7 @@ export const Tasks = () => {
           >
             {showForm ? 'Cancel' : 'Add Task'}
           </Button>
-        </div>
+        </ButtonGroup>
       </TasksHeader>
 
       {/* Search Bar - Only show when tasks are available */}
@@ -1331,7 +1398,7 @@ export const Tasks = () => {
 
         {showForm && (
           <ModalOverlay onClick={handleCancel}>
-            <ModalContent onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', width: '90%', maxHeight: '80vh', overflowY: 'auto' }}>
+            <ModalContent onClick={(e) => e.stopPropagation()} $maxWidth="600px" $width="90%" $maxHeight="80vh">
               <CardHeader>
                 <ModalHeader>
                   <CardTitle>{editingTask ? 'Edit Task' : 'Create New Task'}</CardTitle>
@@ -1369,11 +1436,11 @@ export const Tasks = () => {
                 />
                 {/* Show typing indicators for other users */}
                 {editingTask && typingUsers.size > 0 && (
-                  <div style={{ marginTop: '0.5rem' }}>
+                  <TypingIndicatorContainer>
                     {Array.from(typingUsers.values()).map(({ userName }, index) => (
                       <TypingIndicator key={`${userName}-${index}`} userName={userName} />
                     ))}
-                  </div>
+                  </TypingIndicatorContainer>
                 )}
               </FormGroup>
               <FormGroup>
@@ -1394,9 +1461,9 @@ export const Tasks = () => {
                 <Label htmlFor="assignee">
                   Assignee (Optional)
                   {formData.hasWeb3Reward && (
-                    <span style={{ fontSize: '0.875rem', color: '#6366f1', marginLeft: '0.5rem' }}>
+                    <HelperText>
                       💡 Leave empty to create an open task (anyone can claim)
-                    </span>
+                    </HelperText>
                   )}
                 </Label>
                 <Input
@@ -1408,9 +1475,9 @@ export const Tasks = () => {
                   placeholder={formData.hasWeb3Reward ? "0x... (leave empty for open task)" : "0x... or user ID"}
                 />
                 {formData.hasWeb3Reward && !formData.assignee && (
-                  <div style={{ fontSize: '0.875rem', color: '#10b981', marginTop: '0.5rem' }}>
+                  <InfoText>
                     ✓ This will be an open task - anyone can claim it
-                  </div>
+                  </InfoText>
                 )}
               </FormGroup>
               <FormGroup>
@@ -1543,9 +1610,9 @@ export const Tasks = () => {
                       ? 'Update Task' 
                       : 'Create Task'}
               </Button>
-                <p style={{ fontSize: '0.875rem', color: '#94A3B8', marginTop: '0.5rem', textAlign: 'center' }}>
+                <FormHelperText>
                   Press Ctrl+Enter (Cmd+Enter on Mac) to submit
-                </p>
+                </FormHelperText>
               </Form>
             </CardBody>
           </ModalContent>

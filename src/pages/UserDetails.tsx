@@ -8,6 +8,11 @@ import { useToast } from '../components/common/Toast';
 
 const UserDetailsContainer = styled(PageContainer)`
   max-width: 1000px;
+  padding: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: ${({ theme }) => theme.spacing.xl};
+  }
 `;
 
 const HeaderSection = styled.div`
@@ -15,27 +20,44 @@ const HeaderSection = styled.div`
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-bottom: ${({ theme }) => theme.spacing.xxl};
-  padding: ${({ theme }) => theme.spacing.xl} 0;
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => theme.spacing.lg} 0;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    margin-bottom: ${({ theme }) => theme.spacing.xxl};
+    padding: ${({ theme }) => theme.spacing.xl} 0;
+  }
 `;
 
 const LargeAvatar = styled.div<{ $hasImage?: boolean }>`
-  width: 120px;
-  height: 120px;
+  width: 80px;
+  height: 80px;
   border-radius: ${({ theme }) => theme.borderRadius.full};
   background: ${({ $hasImage, theme }) => $hasImage ? 'transparent' : `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`};
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${({ theme }) => theme.fontSize.xxxl};
+  font-size: ${({ theme }) => theme.fontSize.xxl};
   font-weight: ${({ theme }) => theme.fontWeight.bold};
   color: white;
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
   box-shadow: ${({ theme }) => theme.shadows.lg};
   position: relative;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    width: 100px;
+    height: 100px;
+    font-size: ${({ theme }) => theme.fontSize.xxxl};
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    width: 120px;
+    height: 120px;
+    margin-bottom: ${({ theme }) => theme.spacing.lg};
+  }
 
   &:hover {
     transform: scale(1.05);
@@ -78,29 +100,47 @@ const AvatarInput = styled.input`
 
 const UserName = styled.h1`
   margin: 0 0 ${({ theme }) => theme.spacing.sm} 0;
-  font-size: ${({ theme }) => theme.fontSize.xxxl};
+  font-size: ${({ theme }) => theme.fontSize.xl};
   color: ${({ theme }) => theme.colors.text};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSize.xxxl};
+  }
 `;
 
 const UserEmail = styled.p`
   margin: 0 0 ${({ theme }) => theme.spacing.md} 0;
   color: ${({ theme }) => theme.colors.textLight};
-  font-size: ${({ theme }) => theme.fontSize.lg};
+  font-size: ${({ theme }) => theme.fontSize.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSize.lg};
+  }
 `;
 
 const UserBio = styled.p`
   margin: 0;
   color: ${({ theme }) => theme.colors.textLight};
-  font-size: ${({ theme }) => theme.fontSize.md};
+  font-size: ${({ theme }) => theme.fontSize.sm};
   max-width: 600px;
   line-height: 1.6;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSize.md};
+    padding: 0;
+  }
 `;
 
 const CardsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: ${({ theme }) => theme.spacing.lg};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
 `;
 
 const InfoCard = styled(Card)`
@@ -132,9 +172,14 @@ const InfoValue = styled.div`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: ${({ theme }) => theme.spacing.md};
   margin-top: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
 `;
 
 const StatItem = styled.div`
@@ -173,6 +218,19 @@ const SectionButtonGroup = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.spacing.sm};
   margin-top: ${({ theme }) => theme.spacing.md};
+`;
+
+const LoadingContainer = styled.div`
+  text-align: center;
+  padding: ${({ theme }) => theme.spacing.xxl};
+`;
+
+const ErrorContainer = styled.div`
+  padding: ${({ theme }) => theme.spacing.md};
+  background-color: ${({ theme }) => theme.colors.danger}20;
+  border: 1px solid ${({ theme }) => theme.colors.danger};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  color: ${({ theme }) => theme.colors.danger};
 `;
 
 export const UserDetails = () => {
@@ -431,9 +489,9 @@ export const UserDetails = () => {
   if (profileLoading && !profile) {
     return (
       <UserDetailsContainer>
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
+        <LoadingContainer>
           Loading user details...
-        </div>
+        </LoadingContainer>
       </UserDetailsContainer>
     );
   }
@@ -444,15 +502,9 @@ export const UserDetails = () => {
       <UserDetailsContainer>
         <Card>
           <CardBody>
-            <div style={{ 
-              padding: '1rem', 
-              backgroundColor: '#fee', 
-              border: '1px solid #fcc', 
-              borderRadius: '4px',
-              color: '#c33'
-            }}>
+            <ErrorContainer>
               Error loading profile: {profileError}
-            </div>
+            </ErrorContainer>
           </CardBody>
         </Card>
       </UserDetailsContainer>
@@ -675,9 +727,9 @@ export const UserDetails = () => {
         </CardHeader>
         <CardBody>
           {tasksLoading ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <LoadingContainer>
               Loading statistics...
-            </div>
+            </LoadingContainer>
           ) : (
             <StatsGrid>
               <StatItem>
@@ -746,7 +798,7 @@ export const UserDetails = () => {
                 style={{ minHeight: '100px' }}
               />
             ) : (
-              <InfoValue style={{ lineHeight: '1.8', marginTop: '8px' }}>
+              <InfoValue $lineHeight="1.8" $marginTop={true}>
                 {displayData.bio || 'No bio available'}
               </InfoValue>
             )}

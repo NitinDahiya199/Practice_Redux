@@ -11,11 +11,17 @@ const LoginContainer = styled(PageContainer)`
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: ${({ theme }) => theme.spacing.xl};
+  }
 `;
 
 const LoginCard = styled(Card)`
   max-width: 400px;
   width: 100%;
+  margin: 0 auto;
 `;
 
 const Form = styled.form`

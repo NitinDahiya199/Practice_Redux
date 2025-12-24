@@ -59,6 +59,72 @@ const glow = keyframes`
   }
 `;
 
+const rotate3D = keyframes`
+  0% {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+  33% {
+    transform: rotateX(360deg) rotateY(180deg) rotateZ(90deg);
+  }
+  66% {
+    transform: rotateX(180deg) rotateY(360deg) rotateZ(180deg);
+  }
+  100% {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  }
+`;
+
+const float3D = keyframes`
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg);
+  }
+  25% {
+    transform: translate3d(20px, -30px, 50px) rotateX(90deg) rotateY(90deg);
+  }
+  50% {
+    transform: translate3d(-20px, -60px, 100px) rotateX(180deg) rotateY(180deg);
+  }
+  75% {
+    transform: translate3d(30px, -30px, 50px) rotateX(270deg) rotateY(270deg);
+  }
+`;
+
+const pulse3D = keyframes`
+  0%, 100% {
+    transform: scale3d(1, 1, 1) translateZ(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale3d(1.2, 1.2, 1.2) translateZ(50px);
+    opacity: 1;
+  }
+`;
+
+const orbit = keyframes`
+  0% {
+    transform: rotateZ(0deg) translateX(150px) rotateZ(0deg);
+  }
+  100% {
+    transform: rotateZ(360deg) translateX(150px) rotateZ(-360deg);
+  }
+`;
+
+const particleFloat = keyframes`
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(var(--tx), var(--ty), var(--tz)) scale(1.5);
+  }
+`;
+
 const LandingWrapper = styled.div`
   display: flex;
   flex-direction: column;
@@ -73,6 +139,8 @@ const HeroSectionWrapper = styled.section`
   position: relative;
   overflow: hidden;
   padding: ${({ theme }) => theme.spacing.xxl} 0;
+  perspective: 1000px;
+  transform-style: preserve-3d;
   
   &::before {
     content: '';
@@ -99,6 +167,146 @@ const HeroSectionWrapper = styled.section`
   }
 `;
 
+// 3D Animated Shapes
+const AnimatedShape = styled.div<{ $delay?: number; $size?: number; $color?: string; $duration?: number }>`
+  position: absolute;
+  width: ${({ $size = 100 }) => $size}px;
+  height: ${({ $size = 100 }) => $size}px;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  animation: ${float3D} ${({ $duration = 20 }) => $duration}s ease-in-out infinite;
+  animation-delay: ${({ $delay = 0 }) => $delay}s;
+  opacity: 0.4;
+  filter: blur(1px);
+  
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: ${({ $color, theme }) => 
+      $color || `linear-gradient(135deg, ${theme.colors.primary}40, ${theme.colors.accent}40)`};
+    border-radius: 20%;
+    box-shadow: 0 0 30px ${({ $color, theme }) => 
+      $color || theme.colors.primary}40;
+  }
+  
+  &::before {
+    transform: rotateY(45deg) translateZ(${({ $size = 100 }) => $size * 0.5}px);
+  }
+  
+  &::after {
+    transform: rotateX(45deg) translateZ(${({ $size = 100 }) => $size * 0.5}px);
+  }
+`;
+
+const Cube3D = styled.div<{ $delay?: number; $x?: number; $y?: number }>`
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  left: ${({ $x = 10 }) => $x}%;
+  top: ${({ $y = 20 }) => $y}%;
+  transform-style: preserve-3d;
+  animation: ${rotate3D} 15s linear infinite;
+  animation-delay: ${({ $delay = 0 }) => $delay}s;
+  pointer-events: none;
+  opacity: 0.3;
+  
+  div {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+    border: 1px solid rgba(99, 102, 241, 0.5);
+    backdrop-filter: blur(10px);
+  }
+  
+  div:nth-child(1) {
+    transform: rotateY(0deg) translateZ(40px);
+  }
+  div:nth-child(2) {
+    transform: rotateY(90deg) translateZ(40px);
+  }
+  div:nth-child(3) {
+    transform: rotateY(180deg) translateZ(40px);
+  }
+  div:nth-child(4) {
+    transform: rotateY(-90deg) translateZ(40px);
+  }
+  div:nth-child(5) {
+    transform: rotateX(90deg) translateZ(40px);
+  }
+  div:nth-child(6) {
+    transform: rotateX(-90deg) translateZ(40px);
+  }
+`;
+
+const Orb3D = styled.div<{ $delay?: number; $x?: number; $y?: number; $size?: number }>`
+  position: absolute;
+  width: ${({ $size = 150 }) => $size}px;
+  height: ${({ $size = 150 }) => $size}px;
+  left: ${({ $x = 50 }) => $x}%;
+  top: ${({ $y = 50 }) => $y}%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, 
+    rgba(99, 102, 241, 0.4), 
+    rgba(139, 92, 246, 0.2),
+    transparent 70%);
+  box-shadow: 
+    0 0 60px rgba(99, 102, 241, 0.3),
+    inset 0 0 60px rgba(139, 92, 246, 0.2);
+  animation: ${pulse3D} ${({ $delay = 4 }) => 4 + $delay * 0.5}s ease-in-out infinite;
+  animation-delay: ${({ $delay = 0 }) => $delay}s;
+  pointer-events: none;
+  filter: blur(2px);
+  transform-style: preserve-3d;
+`;
+
+const Particle = styled.div<{ $delay?: number; $tx?: string; $ty?: string; $tz?: string }>`
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: ${({ theme }) => theme.colors.primary};
+  border-radius: 50%;
+  box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary};
+  left: 50%;
+  top: 50%;
+  --tx: ${({ $tx = '0px' }) => $tx};
+  --ty: ${({ $ty = '0px' }) => $ty};
+  --tz: ${({ $tz = '0px' }) => $tz};
+  animation: ${particleFloat} 8s ease-in-out infinite;
+  animation-delay: ${({ $delay = 0 }) => $delay}s;
+  pointer-events: none;
+  opacity: 0;
+`;
+
+const OrbitingShape = styled.div<{ $delay?: number; $size?: number }>`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: ${({ $size = 60 }) => $size}px;
+  height: ${({ $size = 60 }) => $size}px;
+  transform-style: preserve-3d;
+  animation: ${orbit} 20s linear infinite;
+  animation-delay: ${({ $delay = 0 }) => $delay}s;
+  pointer-events: none;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, 
+      rgba(99, 102, 241, 0.4), 
+      rgba(139, 92, 246, 0.4));
+    border-radius: 20%;
+    transform: rotateX(45deg) rotateY(45deg);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+    animation: ${rotate3D} 5s linear infinite;
+  }
+`;
+
 const LandingContainer = styled(PageContainer)`
   display: flex;
   flex-direction: column;
@@ -118,20 +326,42 @@ const HeroSection = styled.div`
   margin: 0 auto;
   padding: 0 ${({ theme }) => theme.spacing.md};
   position: relative;
-  z-index: 1;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
+  backdrop-filter: blur(2px);
 
   @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
     padding: 0 ${({ theme }) => theme.spacing.xl};
   }
+  
+  /* Add subtle glow effect */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: ${pulse3D} 4s ease-in-out infinite;
+    z-index: -1;
+    pointer-events: none;
+    
+    @media (max-width: ${({ theme }) => theme.breakpoints.tablet}) {
+      width: 400px;
+      height: 400px;
+    }
+  }
 `;
 
 const HeroTitle = styled.h1`
-  font-size: ${({ theme }) => theme.fontSize.xxxl};
+  font-size: 2.5rem;
   font-weight: ${({ theme }) => theme.fontWeight.bold};
   margin-bottom: ${({ theme }) => theme.spacing.lg};
   line-height: 1.2;
@@ -142,48 +372,89 @@ const HeroTitle = styled.h1`
   background-clip: text;
   animation: ${gradientAnimation} 3s ease infinite;
   filter: drop-shadow(0 0 30px rgba(99, 102, 241, 0.5));
+  padding: 0 ${({ theme }) => theme.spacing.md};
+  position: relative;
+  z-index: 2;
+  transform-style: preserve-3d;
+  
+  /* Animated glow effect behind text */
+  &::before {
+    content: 'Reward Flow';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: ${({ theme }) => theme.gradients.primary};
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: blur(20px) opacity(0.5);
+    z-index: -1;
+    animation: ${gradientAnimation} 3s ease infinite;
+    transform: translateZ(-50px);
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    font-size: 3rem;
+  }
 
   @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    font-size: 5rem;
+    font-size: 4rem;
+    padding: 0;
   }
 
   @media (min-width: ${({ theme }) => theme.breakpoints.desktop}) {
-    font-size: 6rem;
+    font-size: 5rem;
   }
 
   @media (min-width: ${({ theme }) => theme.breakpoints.wide}) {
-    font-size: 7rem;
+    font-size: 6rem;
   }
 `;
 
 const HeroSubtitle = styled.p`
-  font-size: ${({ theme }) => theme.fontSize.xl};
+  font-size: ${({ theme }) => theme.fontSize.md};
   color: ${({ theme }) => theme.colors.textLight};
   margin-bottom: ${({ theme }) => theme.spacing.xl};
   line-height: 1.8;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    font-size: ${({ theme }) => theme.fontSize.lg};
+  }
 
   @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+    padding: 0;
   }
 
   @media (min-width: ${({ theme }) => theme.breakpoints.desktop}) {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     max-width: 900px;
   }
 `;
 
 const FeaturesSection = styled.section`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: ${({ theme }) => theme.spacing.xl};
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme.spacing.lg};
   max-width: 1200px;
   margin-bottom: ${({ theme }) => theme.spacing.xxl};
   width: 100%;
   position: relative;
   z-index: 1;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: ${({ theme }) => theme.spacing.xl};
+    padding: 0;
+  }
 `;
 
 const FeatureCard = styled.div`
@@ -248,10 +519,7 @@ const FeatureTitle = styled.h3`
   font-weight: ${({ theme }) => theme.fontWeight.bold};
   color: ${({ theme }) => theme.colors.text};
   margin-bottom: ${({ theme }) => theme.spacing.sm};
-  background: ${({ theme }) => theme.gradients.primary};
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin-top: 0;
 `;
 
 const FeatureDescription = styled.p`
@@ -262,10 +530,18 @@ const FeatureDescription = styled.p`
 
 const CTAButtons = styled.div`
   display: flex;
+  flex-direction: column;
   gap: ${({ theme }) => theme.spacing.md};
-  flex-wrap: wrap;
-  justify-content: center;
+  width: 100%;
+  padding: 0 ${({ theme }) => theme.spacing.md};
   margin-top: ${({ theme }) => theme.spacing.xl};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    flex-direction: row;
+    justify-content: center;
+    width: auto;
+    padding: 0;
+  }
 `;
 
 const StyledLink = styled(Link)`
@@ -287,7 +563,7 @@ const HowItWorksSection = styled.section`
 `;
 
 const SectionTitle = styled.h2`
-  font-size: ${({ theme }) => theme.fontSize.xxxl};
+  font-size: ${({ theme }) => theme.fontSize.xxl};
   font-weight: ${({ theme }) => theme.fontWeight.bold};
   text-align: center;
   margin-bottom: ${({ theme }) => theme.spacing.md};
@@ -297,23 +573,40 @@ const SectionTitle = styled.h2`
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: ${gradientAnimation} 3s ease infinite;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSize.xxxl};
+    padding: 0;
+  }
 `;
 
 const SectionSubtitle = styled.p`
-  font-size: ${({ theme }) => theme.fontSize.lg};
+  font-size: ${({ theme }) => theme.fontSize.md};
   color: ${({ theme }) => theme.colors.textLight};
   text-align: center;
   margin-bottom: ${({ theme }) => theme.spacing.xxl};
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+  padding: 0 ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSize.lg};
+    padding: 0;
+  }
 `;
 
 const StepsContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: ${({ theme }) => theme.spacing.xl};
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme.spacing.lg};
   position: relative;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: ${({ theme }) => theme.spacing.xl};
+  }
 `;
 
 const StepCard = styled.div`
@@ -369,10 +662,15 @@ const StepDescription = styled.p`
 const StatsSection = styled.section`
   max-width: 1200px;
   width: 100%;
-  margin: ${({ theme }) => theme.spacing.xxl} auto;
-  padding: ${({ theme }) => theme.spacing.xxl} ${({ theme }) => theme.spacing.md};
+  margin: ${({ theme }) => theme.spacing.xl} auto;
+  padding: ${({ theme }) => theme.spacing.lg} ${({ theme }) => theme.spacing.md};
   position: relative;
   z-index: 1;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    margin: ${({ theme }) => theme.spacing.xxl} auto;
+    padding: ${({ theme }) => theme.spacing.xl} ${({ theme }) => theme.spacing.md};
+  }
 
   @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
     padding: ${({ theme }) => theme.spacing.xxl} ${({ theme }) => theme.spacing.xl};
@@ -381,13 +679,28 @@ const StatsSection = styled.section`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: ${({ theme }) => theme.spacing.xl};
-  margin-top: ${({ theme }) => theme.spacing.xl};
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-top: ${({ theme }) => theme.spacing.lg};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: ${({ theme }) => theme.spacing.md};
+    margin-top: ${({ theme }) => theme.spacing.xl};
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: ${({ theme }) => theme.spacing.lg};
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.desktop}) {
+    gap: ${({ theme }) => theme.spacing.xl};
+  }
 `;
 
 const StatCard = styled.div`
-  padding: ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => theme.spacing.lg};
   background: linear-gradient(
     135deg,
     rgba(99, 102, 241, 0.1) 0%,
@@ -398,28 +711,69 @@ const StatCard = styled.div`
   backdrop-filter: blur(10px);
   text-align: center;
   transition: all 0.4s ease;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    padding: ${({ theme }) => theme.spacing.xl};
+    min-height: 140px;
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    min-height: 160px;
+  }
 
   &:hover {
     transform: translateY(-5px);
     box-shadow: ${({ theme }) => theme.shadows.glow};
     border-color: ${({ theme }) => theme.colors.primary};
   }
+
+  &:active {
+    transform: translateY(-2px);
+  }
 `;
 
 const StatNumber = styled.div`
-  font-size: 3rem;
+  font-size: 2rem;
   font-weight: ${({ theme }) => theme.fontWeight.bold};
   background: ${({ theme }) => theme.gradients.primary};
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.xs};
+  line-height: 1.2;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    font-size: 2.5rem;
+    margin-bottom: ${({ theme }) => theme.spacing.sm};
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: 3rem;
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.desktop}) {
+    font-size: 3.5rem;
+  }
 `;
 
 const StatLabel = styled.p`
-  font-size: ${({ theme }) => theme.fontSize.md};
+  font-size: ${({ theme }) => theme.fontSize.sm};
   color: ${({ theme }) => theme.colors.textLight};
   margin: 0;
+  line-height: 1.4;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    font-size: ${({ theme }) => theme.fontSize.md};
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSize.lg};
+  }
 `;
 
 // Testimonials Section
@@ -438,9 +792,14 @@ const TestimonialsSection = styled.section`
 
 const TestimonialsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: ${({ theme }) => theme.spacing.xl};
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme.spacing.lg};
   margin-top: ${({ theme }) => theme.spacing.xl};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: ${({ theme }) => theme.spacing.xl};
+  }
 `;
 
 const TestimonialCard = styled.div`
@@ -525,6 +884,42 @@ export const Landing = () => {
     <LandingWrapper>
       {/* Full Screen Hero Section */}
       <HeroSectionWrapper>
+        {/* 3D Animated Background Elements */}
+        <AnimatedShape $delay={0} $size={120} $duration={25} style={{ left: '10%', top: '20%' }} />
+        <AnimatedShape $delay={2} $size={80} $duration={30} style={{ right: '15%', top: '30%' }} />
+        <AnimatedShape $delay={4} $size={150} $duration={35} style={{ left: '50%', bottom: '20%' }} />
+        <AnimatedShape $delay={1} $size={100} $duration={28} style={{ right: '30%', bottom: '30%' }} />
+        
+        {/* 3D Cubes */}
+        <Cube3D $delay={0} $x={15} $y={25}>
+          <div></div><div></div><div></div><div></div><div></div><div></div>
+        </Cube3D>
+        <Cube3D $delay={5} $x={75} $y={60}>
+          <div></div><div></div><div></div><div></div><div></div><div></div>
+        </Cube3D>
+        <Cube3D $delay={10} $x={50} $y={15}>
+          <div></div><div></div><div></div><div></div><div></div><div></div>
+        </Cube3D>
+        
+        {/* 3D Orbs */}
+        <Orb3D $delay={0} $x={20} $y={40} $size={200} />
+        <Orb3D $delay={3} $x={80} $y={20} $size={150} />
+        <Orb3D $delay={6} $x={60} $y={70} $size={180} />
+        
+        {/* Orbiting Shapes */}
+        <OrbitingShape $delay={0} $size={80} />
+        <OrbitingShape $delay={10} $size={60} style={{ animationDuration: '25s' }} />
+        
+        {/* Particles */}
+        <Particle $delay={0} $tx="200px" $ty="-200px" $tz="100px" />
+        <Particle $delay={1} $tx="-150px" $ty="-250px" $tz="150px" />
+        <Particle $delay={2} $tx="250px" $ty="200px" $tz="80px" />
+        <Particle $delay={3} $tx="-200px" $ty="150px" $tz="120px" />
+        <Particle $delay={4} $tx="180px" $ty="-150px" $tz="200px" />
+        <Particle $delay={5} $tx="-180px" $ty="-100px" $tz="90px" />
+        <Particle $delay={6} $tx="220px" $ty="180px" $tz="160px" />
+        <Particle $delay={7} $tx="-220px" $ty="120px" $tz="110px" />
+        
         <HeroSection>
           <HeroTitle>Reward Flow</HeroTitle>
           <HeroSubtitle>

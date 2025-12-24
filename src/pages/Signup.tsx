@@ -11,11 +11,17 @@ const SignupContainer = styled(PageContainer)`
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: ${({ theme }) => theme.spacing.xl};
+  }
 `;
 
 const SignupCard = styled(Card)`
   max-width: 400px;
   width: 100%;
+  margin: 0 auto;
 `;
 
 const Form = styled.form`
@@ -38,6 +44,12 @@ const LinkText = styled.p`
       text-decoration: underline;
     }
   }
+`;
+
+const ErrorMessage = styled.p`
+  color: ${({ theme }) => theme.colors.danger};
+  font-size: ${({ theme }) => theme.fontSize.sm};
+  margin: 0;
 `;
 
 export const Signup = () => {
@@ -148,9 +160,9 @@ export const Signup = () => {
             </FormGroup>
             {(passwordError || error) && (
               <FormGroup>
-                <p style={{ color: 'red', fontSize: '14px', margin: 0 }}>
+                <ErrorMessage>
                   {passwordError || error}
-                </p>
+                </ErrorMessage>
               </FormGroup>
             )}
             <Button type="submit" fullWidth disabled={isLoading}>

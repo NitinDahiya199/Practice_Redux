@@ -95,6 +95,21 @@ const CommentContent = styled.p`
   word-wrap: break-word;
 `;
 
+const LoadingMessage = styled.div`
+  padding: ${({ theme }) => theme.spacing.md};
+  text-align: center;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-size: ${({ theme }) => theme.fontSize.sm};
+`;
+
+const EmptyState = styled.div`
+  padding: ${({ theme }) => theme.spacing.md};
+  text-align: center;
+  color: ${({ theme }) => theme.colors.textSecondary};
+  font-style: italic;
+  font-size: ${({ theme }) => theme.fontSize.sm};
+`;
+
 interface CommentSectionProps {
   taskId: string;
   userId: string;
@@ -234,9 +249,9 @@ export const CommentSection: React.FC<CommentSectionProps> = ({ taskId, userId }
       </CommentForm>
 
       {isLoading && comments.length === 0 ? (
-        <div>Loading comments...</div>
+        <LoadingMessage>Loading comments...</LoadingMessage>
       ) : comments.length === 0 ? (
-        <div style={{ color: '#666', fontStyle: 'italic' }}>No comments yet. Be the first to comment!</div>
+        <EmptyState>No comments yet. Be the first to comment!</EmptyState>
       ) : (
         <CommentsList>
           {comments.map((comment) => (

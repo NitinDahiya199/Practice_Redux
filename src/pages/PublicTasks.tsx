@@ -15,36 +15,57 @@ import { contractService } from '../services/contractService';
 import { API_ENDPOINTS } from '../config/api';
 
 const TasksContainer = styled(PageContainer)`
-  padding: 2rem;
+  padding: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    padding: ${({ theme }) => theme.spacing.xl};
+  }
 `;
 
 const TasksHeader = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0;
+  }
 `;
 
 const PageTitle = styled.h1`
-  font-size: ${({ theme }) => theme.fontSize.xxl};
+  font-size: ${({ theme }) => theme.fontSize.xl};
   font-weight: ${({ theme }) => theme.fontWeight.bold};
   background: ${({ theme }) => theme.gradients.primary};
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin: 0;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    font-size: ${({ theme }) => theme.fontSize.xxl};
+  }
 `;
 
 const InfoBanner = styled.div`
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
   border: 1px solid rgba(99, 102, 241, 0.2);
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  padding: 1rem 1.5rem;
-  margin-bottom: 2rem;
+  padding: ${({ theme }) => theme.spacing.md};
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${({ theme }) => theme.spacing.md} ${({ theme }) => theme.spacing.lg};
+  }
 `;
 
 const InfoText = styled.p`
@@ -55,9 +76,17 @@ const InfoText = styled.p`
 
 const TasksGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
+  grid-template-columns: 1fr;
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-top: ${({ theme }) => theme.spacing.xl};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.tablet}) {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
 `;
 
 const TaskCard = styled(Card)`
@@ -71,9 +100,16 @@ const TaskCard = styled(Card)`
 
 const TaskHeader = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0;
+  }
 `;
 
 const TaskTitle = styled.h3`
@@ -87,18 +123,22 @@ const TaskTitle = styled.h3`
 const RewardBadge = styled.div`
   background: ${({ theme }) => theme.gradients.primary};
   color: white;
-  padding: 0.5rem 1rem;
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-size: ${({ theme }) => theme.fontSize.sm};
   font-weight: ${({ theme }) => theme.fontWeight.bold};
   white-space: nowrap;
-  margin-left: 1rem;
+  align-self: flex-start;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    margin-left: ${({ theme }) => theme.spacing.md};
+  }
 `;
 
 const TaskDescription = styled.p`
   color: ${({ theme }) => theme.colors.textLight};
   font-size: ${({ theme }) => theme.fontSize.md};
-  margin: 0 0 1rem 0;
+  margin: 0 0 ${({ theme }) => theme.spacing.md} 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -108,8 +148,8 @@ const TaskDescription = styled.p`
 const TaskMeta = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
 
 const TaskMetaRow = styled.div`
@@ -125,7 +165,7 @@ const TaskDate = styled.span`
 `;
 
 const PriorityBadge = styled.span<{ priority: string }>`
-  padding: 0.25rem 0.75rem;
+  padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
   border-radius: ${({ theme }) => theme.borderRadius.sm};
   font-size: ${({ theme }) => theme.fontSize.xs};
   font-weight: ${({ theme }) => theme.fontWeight.semibold};
@@ -147,30 +187,42 @@ const PriorityBadge = styled.span<{ priority: string }>`
 const CreatorInfo = styled.div`
   font-size: ${({ theme }) => theme.fontSize.sm};
   color: ${({ theme }) => theme.colors.textLight};
-  margin-bottom: 1rem;
+  margin-bottom: ${({ theme }) => theme.spacing.md};
 `;
 
 const TaskActions = styled.div`
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing.sm};
+  margin-top: ${({ theme }) => theme.spacing.md};
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    flex-direction: row;
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing.sm};
+  flex-wrap: wrap;
 `;
 
 const EmptyState = styled.div`
   text-align: center;
-  padding: 4rem 2rem;
+  padding: ${({ theme }) => theme.spacing.xxl} ${({ theme }) => theme.spacing.xl};
   color: ${({ theme }) => theme.colors.textLight};
 `;
 
 const EmptyStateTitle = styled.h2`
   font-size: ${({ theme }) => theme.fontSize.xl};
-  margin-bottom: 1rem;
+  margin-bottom: ${({ theme }) => theme.spacing.md};
   color: ${({ theme }) => theme.colors.text};
 `;
 
 const LoadingMessage = styled.div`
   text-align: center;
-  padding: 4rem 2rem;
+  padding: ${({ theme }) => theme.spacing.xxl} ${({ theme }) => theme.spacing.xl};
   color: ${({ theme }) => theme.colors.textLight};
   font-size: ${({ theme }) => theme.fontSize.lg};
 `;
@@ -179,9 +231,9 @@ const ErrorMessage = styled.div`
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: ${({ theme }) => theme.colors.danger};
-  padding: 1rem;
+  padding: ${({ theme }) => theme.spacing.md};
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  margin-bottom: 2rem;
+  margin-bottom: ${({ theme }) => theme.spacing.xl};
 `;
 
 interface PublicTask {
@@ -518,14 +570,14 @@ export const PublicTasks = () => {
           <InfoText>
             💡 Want to complete tasks and earn rewards? Login or Sign Up to get started!
           </InfoText>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <ButtonGroup>
             <Button variant="outline" onClick={() => navigate('/login')}>
               Login
             </Button>
             <Button onClick={() => navigate('/signup')}>
               Sign Up
             </Button>
-          </div>
+          </ButtonGroup>
         </InfoBanner>
       )}
 

@@ -13,8 +13,8 @@ const pulse = keyframes`
 const TypingIndicatorContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
+  gap: ${({ theme }) => theme.spacing.sm};
+  padding: ${({ theme }) => theme.spacing.sm};
   font-size: ${({ theme }) => theme.fontSize.sm};
   color: ${({ theme }) => theme.colors.textLight};
   font-style: italic;
@@ -22,7 +22,7 @@ const TypingIndicatorContainer = styled.div`
 
 const TypingDots = styled.div`
   display: flex;
-  gap: 0.25rem;
+  gap: ${({ theme }) => theme.spacing.xs};
   align-items: center;
 `;
 

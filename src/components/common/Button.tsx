@@ -27,14 +27,14 @@ interface ButtonProps {
 
 export const Button = styled.button<ButtonProps>`
   padding: ${({ size = 'md', theme }) => {
-    if (size === 'sm') return `${theme.spacing.sm} ${theme.spacing.md}`;
-    if (size === 'lg') return `${theme.spacing.md} ${theme.spacing.xl}`;
-    return `${theme.spacing.sm} ${theme.spacing.lg}`;
+    if (size === 'sm') return `${theme.spacing.xs} ${theme.spacing.sm}`;
+    if (size === 'lg') return `${theme.spacing.md} ${theme.spacing.lg}`;
+    return `${theme.spacing.sm} ${theme.spacing.md}`;
   }};
   font-size: ${({ size = 'md', theme }) => {
-    if (size === 'sm') return theme.fontSize.sm;
-    if (size === 'lg') return theme.fontSize.lg;
-    return theme.fontSize.md;
+    if (size === 'sm') return theme.fontSize.xs;
+    if (size === 'lg') return theme.fontSize.md;
+    return theme.fontSize.sm;
   }};
   font-weight: ${({ theme }) => theme.fontWeight.semibold};
   border: none;
@@ -45,6 +45,21 @@ export const Button = styled.button<ButtonProps>`
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
+  white-space: nowrap;
+  min-width: fit-content;
+
+  @media (min-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    padding: ${({ size = 'md', theme }) => {
+      if (size === 'sm') return `${theme.spacing.sm} ${theme.spacing.md}`;
+      if (size === 'lg') return `${theme.spacing.md} ${theme.spacing.xl}`;
+      return `${theme.spacing.sm} ${theme.spacing.lg}`;
+    }};
+    font-size: ${({ size = 'md', theme }) => {
+      if (size === 'sm') return theme.fontSize.sm;
+      if (size === 'lg') return theme.fontSize.lg;
+      return theme.fontSize.md;
+    }};
+  }
   
   &::before {
     content: '';
